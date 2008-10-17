@@ -1,5 +1,7 @@
 package com.thaiopensource.relaxng.output.xsd.basic;
 
+import java.util.List;
+
 public class ComplexTypeComplexContent extends ComplexTypeAllowedContent {
   private final Particle particle;
   private final boolean mixed;
@@ -20,7 +22,7 @@ public class ComplexTypeComplexContent extends ComplexTypeAllowedContent {
     return mixed;
   }
 
-  public <T> T accept(ComplexTypeVisitor<T> visitor) {
+  public Object accept(ComplexTypeVisitor visitor) {
     return visitor.visitComplexContent(this);
   }
 

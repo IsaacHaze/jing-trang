@@ -27,9 +27,9 @@ import java.util.Map;
 
 public class DtdInputFormat implements InputFormat {
   static private class NamespaceDeclParamFactory implements ParamFactory {
-    private final Map<String, String> prefixMap;
+    private final Map prefixMap;
 
-    NamespaceDeclParamFactory(Map<String, String> prefixMap) {
+    NamespaceDeclParamFactory(Map prefixMap) {
       this.prefixMap = prefixMap;
     }
 

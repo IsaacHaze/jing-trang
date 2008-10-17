@@ -1,6 +1,6 @@
 package com.thaiopensource.relaxng.input.xml;
 
-import com.thaiopensource.datatype.DatatypeLibraryLoader;
+import com.thaiopensource.xml.sax.XMLReaderCreator;
 import com.thaiopensource.relaxng.edit.AttributePattern;
 import com.thaiopensource.relaxng.edit.ChoicePattern;
 import com.thaiopensource.relaxng.edit.CompositePattern;
@@ -19,6 +19,8 @@ import com.thaiopensource.relaxng.edit.SchemaCollection;
 import com.thaiopensource.relaxng.edit.SchemaDocument;
 import com.thaiopensource.relaxng.edit.TextPattern;
 import com.thaiopensource.relaxng.edit.ZeroOrMorePattern;
+import com.thaiopensource.relaxng.output.common.Name;
+import com.thaiopensource.xml.sax.Jaxp11XMLReaderCreator;
 import com.thaiopensource.xml.infer.AttributeDecl;
 import com.thaiopensource.xml.infer.ChoiceParticle;
 import com.thaiopensource.xml.infer.ElementDecl;
@@ -31,31 +33,29 @@ import com.thaiopensource.xml.infer.ParticleVisitor;
 import com.thaiopensource.xml.infer.Schema;
 import com.thaiopensource.xml.infer.SequenceParticle;
 import com.thaiopensource.xml.infer.TextParticle;
-import com.thaiopensource.xml.sax.Jaxp11XMLReaderCreator;
-import com.thaiopensource.xml.sax.XMLReaderCreator;
-import com.thaiopensource.xml.util.Name;
-import org.xml.sax.ErrorHandler;
+import org.relaxng.datatype.helpers.DatatypeLibraryLoader;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+import org.xml.sax.ErrorHandler;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.Vector;
+import java.util.Collections;
+import java.util.Comparator;
 
 class Inferrer {
   private final Schema schema;
-  private final Set<Name> multiplyReferencedElementNames = new HashSet<Name>();
+  private final Set multiplyReferencedElementNames = new HashSet();
   private final GrammarPattern grammar;
   private final ParticleConverter particleConverter = new ParticleConverter();
-  private final List<Name> outputQueue = new Vector<Name>();
-  private final Set<Name> queued = new HashSet<Name>();
+  private final List outputQueue = new Vector();
+  private final Set queued = new HashSet();
   private String prefixSeparator;
 
   private static final String SEPARATORS = ".-_";
@@ -64,18 +64,18 @@ class Inferrer {
     String encoding;
   }
 
-  private static class PatternComparator implements Comparator<Pattern> {
-    private static final Class<?>[] classOrder = {
+  private static class PatternComparator implements Comparator {
+    private static final Class[] classOrder = {
       TextPattern.class, RefPattern.class, ElementPattern.class
     };
 
-    public int compare(Pattern p1, Pattern p2) {
-      if (p1.getClass() != p2.getClass())
-        return classIndex(p1.getClass()) - classIndex(p2.getClass());
-      if (p1 instanceof RefPattern)
-        return ((RefPattern)p1).getName().compareTo(((RefPattern)p2).getName());
-      if (p1 instanceof ElementPattern)
-        return Name.compare(extractElementName(p1), extractElementName(p2));
+    public int compare(Object o1, Object o2) {
+      if (o1.getClass() != o2.getClass())
+        return classIndex(o1.getClass()) - classIndex(o2.getClass());
+      if (o1 instanceof RefPattern)
+        return ((RefPattern)o1).getName().compareTo(((RefPattern)o2).getName());
+      if (o1 instanceof ElementPattern)
+        return extractElementName(o1).compareTo(extractElementName(o2));
       return 0;
     }
 
@@ -84,7 +84,7 @@ class Inferrer {
       return new Name(nnc.getNamespaceUri(), nnc.getLocalName());
     }
 
-    private static int classIndex(Class<? extends Pattern> aClass) {
+    private static int classIndex(Class aClass) {
       for (int i = 0; i < classOrder.length; i++)
         if (aClass == classOrder[i])
           return i;
@@ -108,11 +108,11 @@ class Inferrer {
 
     public Object visitChoice(ChoiceParticle p) {
       ChoicePattern cp = new ChoicePattern();
-      List<Pattern> children = cp.getChildren();
+      List children = cp.getChildren();
       addChoices(children, p.getChild1());
       addChoices(children, p.getChild2());
       Collections.sort(children, this);
-      for (Iterator<Pattern> iter = children.iterator(); iter.hasNext();)
+      for (Iterator iter = children.iterator(); iter.hasNext();)
         if (iter.next() instanceof EmptyPattern) {
           iter.remove();
           return makeOptional(cp);
@@ -121,10 +121,10 @@ class Inferrer {
     }
 
     private Object makeOptional(ChoicePattern cp) {
-      List<Pattern> children = cp.getChildren();
+      List children = cp.getChildren();
       boolean done = false;
       for (int i = 0, len = children.size(); i < len; i++) {
-        Pattern child = children.get(i);
+        Pattern child = (Pattern)children.get(i);
         if (child instanceof OneOrMorePattern) {
           children.set(i, new ZeroOrMorePattern(((OneOrMorePattern)child).getChild()));
           done = true;
@@ -136,7 +136,7 @@ class Inferrer {
     }
 
 
-    private void addChoices(List<Pattern> children, Particle child) {
+    private void addChoices(List children, Particle child) {
       Pattern pattern = convert(child);
       if (pattern instanceof ChoicePattern)
         children.addAll(((ChoicePattern)pattern).getChildren());
@@ -151,7 +151,7 @@ class Inferrer {
       return gp;
     }
 
-    private void addGroup(List<Pattern> children, Particle child) {
+    private void addGroup(List children, Particle child) {
       Pattern pattern = convert(child);
       if (pattern instanceof GroupPattern)
         children.addAll(((GroupPattern)pattern).getChildren());
@@ -177,7 +177,7 @@ class Inferrer {
   }
 
   private class ReferenceFinder implements ParticleVisitor {
-    private final Set<Name> referencedElementNames = new HashSet<Name>();
+    private final Set referencedElementNames = new HashSet();
 
     public Object visitElement(ElementParticle p) {
       Name name = p.getName();
@@ -239,7 +239,8 @@ class Inferrer {
     choosePrefixSeparator();
     grammar.getComponents().add(new DefineComponent(DefineComponent.START,
                                                     particleConverter.convert(schema.getStart())));
-    for (Name elementName : outputQueue) {
+    for (int i = 0; i < outputQueue.size(); i++) {
+      Name elementName = (Name)outputQueue.get(i);
       grammar.getComponents().add(new DefineComponent(getDefineName(elementName),
                                                       createElementPattern(elementName)));
     }
@@ -248,7 +249,8 @@ class Inferrer {
   private void findMultiplyReferencedElements() {
     ReferenceFinder finder = new ReferenceFinder();
     schema.getStart().accept(finder);
-    for (ElementDecl decl : schema.getElementDecls().values()) {
+    for (Iterator iter = schema.getElementDecls().values().iterator(); iter.hasNext();) {
+      ElementDecl decl = (ElementDecl)iter.next();
       Particle particle = decl.getContentModel();
       if (particle != null)
         particle.accept(finder);
@@ -257,10 +259,10 @@ class Inferrer {
 
 
   private void choosePrefixSeparator() {
-    Map<String, String> prefixMap = schema.getPrefixMap();
-    Set<String> namespacesInDefines = new HashSet<String>();
-    for (Name name : multiplyReferencedElementNames)
-      namespacesInDefines.add(name.getNamespaceUri());
+    Map prefixMap = schema.getPrefixMap();
+    Set namespacesInDefines = new HashSet();
+    for (Iterator iter = multiplyReferencedElementNames.iterator(); iter.hasNext();)
+      namespacesInDefines.add(((Name)iter.next()).getNamespaceUri());
     if (namespacesInDefines.size() <= 1)
       return; // don't need to use prefixes in defines
     // define additional prefixes if necessary
@@ -268,11 +270,11 @@ class Inferrer {
     if (namespacesInDefines.size() > 1) {
       namespacesInDefines.remove("");
       int n = 1;
-      for (String ns : namespacesInDefines) {
-        for (; ;) {
+      for (Iterator iter = namespacesInDefines.iterator(); iter.hasNext();) {
+        for (;;) {
           String prefix = "ns" + Integer.toString(n++);
           if (!prefixMap.containsKey(prefix)) {
-            prefixMap.put(ns, prefix);
+            prefixMap.put(iter.next(), prefix);
             break;
           }
         }
@@ -293,9 +295,9 @@ class Inferrer {
   }
 
   private boolean prefixSeparatorOk() {
-    Set<String> names = new HashSet<String>();
-    for (Name elementName : multiplyReferencedElementNames) {
-      String name = getDefineName(elementName);
+    Set names = new HashSet();
+    for (Iterator iter = multiplyReferencedElementNames.iterator(); iter.hasNext();) {
+      String name = getDefineName((Name)iter.next());
       if (names.contains(name))
         return false;
       names.add(name);
@@ -311,18 +313,15 @@ class Inferrer {
       contentPattern = particleConverter.convert(particle);
     else
       contentPattern = makeDatatype(elementDecl.getDatatype());
-    Map<Name, AttributeDecl> attributeDecls = elementDecl.getAttributeDecls();
+    Map attributeDecls = elementDecl.getAttributeDecls();
     if (attributeDecls.size() > 0) {
       GroupPattern group = new GroupPattern();
-      List<Name> attributeNames = new Vector<Name>();
+      List attributeNames = new Vector();
       attributeNames.addAll(attributeDecls.keySet());
-      Collections.sort(attributeNames, new Comparator<Name>() {
-        public int compare(Name n1, Name n2) {
-          return Name.compare(n1, n2);
-        }
-      });
-      for (Name attName : attributeNames) {
-        AttributeDecl att = attributeDecls.get(attName);
+      Collections.sort(attributeNames);
+      for (Iterator iter = attributeNames.iterator(); iter.hasNext();) {
+        Name attName = (Name)iter.next();
+        AttributeDecl att = (AttributeDecl)attributeDecls.get(attName);
         Pattern tem;
         if (att.getDatatype() == null)
           tem = new TextPattern();
@@ -346,7 +345,7 @@ class Inferrer {
     String ns = name.getNamespaceUri();
     NameNameClass nnc = new NameNameClass(ns, name.getLocalName());
     if (!ns.equals("")) {
-      String prefix = schema.getPrefixMap().get(ns);
+      String prefix = (String)schema.getPrefixMap().get(ns);
       if (prefix != null)
         nnc.setPrefix(prefix);
     }
@@ -359,7 +358,7 @@ class Inferrer {
 
   private String getDefineName(Name elementName) {
     if (prefixSeparator != null) {
-      String prefix = schema.getPrefixMap().get(elementName.getNamespaceUri());
+      String prefix = (String)schema.getPrefixMap().get(elementName.getNamespaceUri());
       if (prefix != null)
         return prefix + prefixSeparator + elementName.getLocalName();
     }
@@ -368,7 +367,7 @@ class Inferrer {
 
   private static Pattern normalize(CompositePattern cp) {
     if (cp.getChildren().size() == 1)
-      return cp.getChildren().get(0);
+      return (Pattern)cp.getChildren().get(0);
     return cp;
   }
 

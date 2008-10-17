@@ -20,7 +20,7 @@ public class ParticleRepeat extends Particle {
     return occurs;
   }
 
-  public <T> T accept(ParticleVisitor<T> visitor) {
+  public Object accept(ParticleVisitor visitor) {
     return visitor.visitRepeat(this);
   }
 

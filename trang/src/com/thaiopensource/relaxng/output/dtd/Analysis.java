@@ -1,68 +1,70 @@
 package com.thaiopensource.relaxng.output.dtd;
 
-import com.thaiopensource.relaxng.edit.AbstractPatternVisitor;
-import com.thaiopensource.relaxng.edit.AnyNameNameClass;
-import com.thaiopensource.relaxng.edit.AttributePattern;
-import com.thaiopensource.relaxng.edit.ChoiceNameClass;
-import com.thaiopensource.relaxng.edit.ChoicePattern;
-import com.thaiopensource.relaxng.edit.Component;
+import com.thaiopensource.relaxng.edit.PatternVisitor;
 import com.thaiopensource.relaxng.edit.ComponentVisitor;
-import com.thaiopensource.relaxng.edit.CompositePattern;
-import com.thaiopensource.relaxng.edit.Container;
-import com.thaiopensource.relaxng.edit.DataPattern;
-import com.thaiopensource.relaxng.edit.DefineComponent;
-import com.thaiopensource.relaxng.edit.DivComponent;
+import com.thaiopensource.relaxng.edit.NameClassVisitor;
 import com.thaiopensource.relaxng.edit.ElementPattern;
 import com.thaiopensource.relaxng.edit.EmptyPattern;
-import com.thaiopensource.relaxng.edit.ExternalRefPattern;
-import com.thaiopensource.relaxng.edit.GrammarPattern;
-import com.thaiopensource.relaxng.edit.GroupPattern;
-import com.thaiopensource.relaxng.edit.IncludeComponent;
-import com.thaiopensource.relaxng.edit.InterleavePattern;
-import com.thaiopensource.relaxng.edit.ListPattern;
-import com.thaiopensource.relaxng.edit.MixedPattern;
-import com.thaiopensource.relaxng.edit.NameClass;
-import com.thaiopensource.relaxng.edit.NameClassVisitor;
+import com.thaiopensource.relaxng.edit.DataPattern;
+import com.thaiopensource.relaxng.edit.ValuePattern;
+import com.thaiopensource.relaxng.edit.AttributePattern;
 import com.thaiopensource.relaxng.edit.NameNameClass;
 import com.thaiopensource.relaxng.edit.NotAllowedPattern;
-import com.thaiopensource.relaxng.edit.NsNameNameClass;
-import com.thaiopensource.relaxng.edit.OneOrMorePattern;
-import com.thaiopensource.relaxng.edit.OptionalPattern;
-import com.thaiopensource.relaxng.edit.ParentRefPattern;
-import com.thaiopensource.relaxng.edit.Pattern;
-import com.thaiopensource.relaxng.edit.PatternVisitor;
-import com.thaiopensource.relaxng.edit.RefPattern;
-import com.thaiopensource.relaxng.edit.SchemaCollection;
 import com.thaiopensource.relaxng.edit.TextPattern;
-import com.thaiopensource.relaxng.edit.ValuePattern;
-import com.thaiopensource.util.VoidValue;
+import com.thaiopensource.relaxng.edit.ListPattern;
+import com.thaiopensource.relaxng.edit.OneOrMorePattern;
 import com.thaiopensource.relaxng.edit.ZeroOrMorePattern;
+import com.thaiopensource.relaxng.edit.ChoicePattern;
+import com.thaiopensource.relaxng.edit.Pattern;
+import com.thaiopensource.relaxng.edit.InterleavePattern;
+import com.thaiopensource.relaxng.edit.GroupPattern;
+import com.thaiopensource.relaxng.edit.RefPattern;
+import com.thaiopensource.relaxng.edit.ParentRefPattern;
+import com.thaiopensource.relaxng.edit.GrammarPattern;
+import com.thaiopensource.relaxng.edit.ExternalRefPattern;
+import com.thaiopensource.relaxng.edit.MixedPattern;
+import com.thaiopensource.relaxng.edit.OptionalPattern;
+import com.thaiopensource.relaxng.edit.Container;
+import com.thaiopensource.relaxng.edit.Component;
+import com.thaiopensource.relaxng.edit.DivComponent;
+import com.thaiopensource.relaxng.edit.DefineComponent;
+import com.thaiopensource.relaxng.edit.IncludeComponent;
+import com.thaiopensource.relaxng.edit.ChoiceNameClass;
+import com.thaiopensource.relaxng.edit.NameClass;
+import com.thaiopensource.relaxng.edit.AnyNameNameClass;
+import com.thaiopensource.relaxng.edit.NsNameNameClass;
+import com.thaiopensource.relaxng.edit.SchemaCollection;
+import com.thaiopensource.relaxng.edit.AbstractVisitor;
+import com.thaiopensource.relaxng.edit.CompositePattern;
+import com.thaiopensource.relaxng.edit.SchemaDocument;
+import com.thaiopensource.relaxng.output.OutputDirectory;
 import com.thaiopensource.relaxng.output.common.ErrorReporter;
 import com.thaiopensource.relaxng.output.common.NameClassSplitter;
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 import com.thaiopensource.xml.util.Naming;
 import com.thaiopensource.xml.util.WellKnownNamespaces;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.Iterator;
 
 class Analysis {
   private final NamespaceManager nsm = new NamespaceManager();
   private final AttlistMapper am = new AttlistMapper();
   private final ErrorReporter er;
-  private final Map<Pattern, ContentType> contentTypes = new HashMap<Pattern, ContentType>();
-  private final Map<Pattern, AttributeType> attributeTypes = new HashMap<Pattern, AttributeType>();
-  private final Map<Pattern, Set<Name>> attributeAlphabets = new HashMap<Pattern, Set<Name>>();
-  private final Map<Pattern, Set<String>> attributeNamespaces = new HashMap<Pattern, Set<String>>();
-  private Map<String, Pattern> defines;
-  private final Set<String> attlists = new HashSet<String>();
-  private final Map<String, GrammarPart> parts = new HashMap<String, GrammarPart>();
-  private final Map<Pattern, Pattern> seenTable = new HashMap<Pattern, Pattern>();
-  private final Map<Name, ElementPattern> elementDecls = new HashMap<Name, ElementPattern>();
+  private final Map contentTypes = new HashMap();
+  private final Map attributeTypes = new HashMap();
+  private final Map attributeAlphabets = new HashMap();
+  private final Map attributeNamespaces = new HashMap();
+  private Map defines = null;
+  private final Set attlists = new HashSet();
+  private final Map parts = new HashMap();
+  private final Map seenTable = new HashMap();
+  private final Map elementDecls = new HashMap();
   private ContentType startType = ContentType.ERROR;
   private GrammarPart mainPart;
   private final SchemaCollection schemas;
@@ -71,36 +73,33 @@ class Analysis {
   private final AttributeAlphabetComputer attributeAlphabetComputer = new AttributeAlphabetComputer();
   private final AttributeNamespacesComputer attributeNamespacesComputer = new AttributeNamespacesComputer();
   private final IncludeContentChecker includeContentChecker = new IncludeContentChecker();
-  private final static Set<String> EMPTY_STRING_SET = Collections.emptySet();
-  private final static Set<Name> EMPTY_NAME_SET = Collections.emptySet();
 
-  private class Analyzer implements PatternVisitor<ContentType>,
-          ComponentVisitor<VoidValue>, NameClassVisitor<VoidValue> {
+  private class Analyzer implements PatternVisitor, ComponentVisitor, NameClassVisitor {
     private ElementPattern ancestorPattern;
-    private final Set<String> pendingRefs;
+    private final Set pendingRefs;
 
     public Analyzer() {
-      pendingRefs = new HashSet<String>();
+      pendingRefs = new HashSet();
     }
 
     private Analyzer(ElementPattern ancestorPattern) {
       this.ancestorPattern = ancestorPattern;
-      pendingRefs = new HashSet<String>();
+      pendingRefs = new HashSet();
     }
 
-    private Analyzer(Set<String> pendingRefs) {
+    private Analyzer(Set pendingRefs) {
       this.pendingRefs = pendingRefs;
     }
 
-    public ContentType visitEmpty(EmptyPattern p) {
+    public Object visitEmpty(EmptyPattern p) {
       return ContentType.EMPTY;
     }
 
-    public ContentType visitData(DataPattern p) {
+    public Object visitData(DataPattern p) {
       return ContentType.SIMPLE_TYPE;
     }
 
-    public ContentType visitValue(ValuePattern p) {
+    public Object visitValue(ValuePattern p) {
       Datatypes.Info info = Datatypes.getInfo(p.getDatatypeLibrary(), p.getType());
       if (info.usesTokenEquality() && Naming.isNmtoken(p.getValue()))
         return ContentType.ENUM;
@@ -109,21 +108,21 @@ class Analysis {
       return ContentType.SIMPLE_TYPE;
     }
 
-    public ContentType visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       int len;
       if (seen(p))
         len = NameClassSplitter.split(p.getNameClass()).size();
       else {
         new Analyzer(p).analyzeContentType(p.getChild());
-        List<NameNameClass> names = noteNames(p.getNameClass(), true);
+        List names = noteNames(p.getNameClass(), true);
         len = names.size();
         for (int i = 0; i < len; i++) {
-          NameNameClass nnc = names.get(i);
+          NameNameClass nnc = (NameNameClass)names.get(i);
           String ns = nnc.getNamespaceUri();
           if (ns == NameClass.INHERIT_NS)
             ns = "";
           Name name = new Name(ns, nnc.getLocalName());
-          ElementPattern prev = elementDecls.get(name);
+          ElementPattern prev = (ElementPattern)elementDecls.get(name);
           if (prev != null) {
             er.error("sorry_multiple_element", ns, name.getLocalName(), p.getSourceLocation());
             er.error("other_element", prev.getSourceLocation());
@@ -135,7 +134,7 @@ class Analysis {
       return len == 1 ? ContentType.DIRECT_SINGLE_ELEMENT : ContentType.ELEMENT_CLASS;
     }
 
-    public ContentType visitAttribute(AttributePattern p) {
+    public Object visitAttribute(AttributePattern p) {
       noteNames(p.getNameClass(), false);
       ContentType t = analyzeContentType(p.getChild());
       if (t.isA(ContentType.MODEL_GROUP) || t == ContentType.MIXED_ELEMENT_CLASS || t == ContentType.MIXED_MODEL)
@@ -145,49 +144,50 @@ class Analysis {
       return ContentType.EMPTY;
     }
 
-    private List<NameNameClass> noteNames(NameClass nc, boolean defaultable) {
+    private List noteNames(NameClass nc, boolean defaultable) {
       nc.accept(this);
-      List<NameNameClass> names = NameClassSplitter.split(nc);
+      List names = NameClassSplitter.split(nc);
       int len = names.size();
       for (int i = 0; i < len; i++)
-        nsm.noteName(names.get(i), defaultable);
+        nsm.noteName((NameNameClass)names.get(i), defaultable);
       return names;
     }
 
-    public ContentType visitNotAllowed(NotAllowedPattern p) {
+    public Object visitNotAllowed(NotAllowedPattern p) {
       return ContentType.NOT_ALLOWED;
     }
 
-    public ContentType visitText(TextPattern p) {
+    public Object visitText(TextPattern p) {
       return ContentType.TEXT;
     }
 
-    public ContentType visitList(ListPattern p) {
+    public Object visitList(ListPattern p) {
       return ContentType.SIMPLE_TYPE;
     }
 
-    public ContentType visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       return checkContentType("sorry_one_or_more", ContentType.oneOrMore(analyzeContentTypeNullAncestorPattern(p.getChild())), p);
     }
 
-    public ContentType visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       return checkContentType("sorry_zero_or_more", ContentType.zeroOrMore(analyzeContentTypeNullAncestorPattern(p.getChild())), p);
     }
 
-    public ContentType visitChoice(ChoicePattern p) {
-      List<Pattern> children = p.getChildren();
-      ContentType tem = analyzeContentType(children.get(0));
-      for (Pattern child : children)
-        tem = checkContentType("sorry_choice", ContentType.choice(tem, analyzeContentType(child)), p);
+    public Object visitChoice(ChoicePattern p) {
+      List children = p.getChildren();
+      ContentType tem = analyzeContentType((Pattern)children.get(0));
+      for (int i = 1, len = children.size(); i < len; i++)
+        tem = checkContentType("sorry_choice", ContentType.choice(tem, analyzeContentType((Pattern)children.get(i))), p);
       if (getAttributeType(p) == AttributeType.MULTI) {
-        Set<Name> attributeNames = new HashSet<Name>();
-        for (Pattern child : children) {
-          Set<Name> childAttributeNames = getAttributeAlphabet(child);
-          for (Name name : childAttributeNames) {
+        Set attributeNames = new HashSet();
+        for (int i = 0, len = children.size(); i < len; i++) {
+          Set childAttributeNames = getAttributeAlphabet((Pattern)children.get(i));
+          for (Iterator iter = childAttributeNames.iterator(); iter.hasNext();) {
+            Object name = iter.next();
             if (attributeNames.contains(name))
               er.error("sorry_choice_attribute_name",
-                       name.getNamespaceUri(),
-                       name.getLocalName(),
+                       ((Name)name).getNamespaceUri(),
+                       ((Name)name).getLocalName(),
                        p.getSourceLocation());
             else
               attributeNames.add(name);
@@ -197,23 +197,23 @@ class Analysis {
       return tem;
     }
 
-    public ContentType visitInterleave(InterleavePattern p) {
-      List<Pattern> children = p.getChildren();
-      ContentType tem = analyzeContentType(children.get(0));
+    public Object visitInterleave(InterleavePattern p) {
+      List children = p.getChildren();
+      ContentType tem = analyzeContentType((Pattern)children.get(0));
       for (int i = 1, len = children.size(); i < len; i++)
-        tem = checkContentType("sorry_interleave", ContentType.interleave(tem, analyzeContentType(children.get(i))), p);
+        tem = checkContentType("sorry_interleave", ContentType.interleave(tem, analyzeContentType((Pattern)children.get(i))), p);
       return tem;
     }
 
-    public ContentType visitGroup(GroupPattern p) {
-      List<Pattern> children = p.getChildren();
-      ContentType tem = analyzeContentType(children.get(0));
+    public Object visitGroup(GroupPattern p) {
+      List children = p.getChildren();
+      ContentType tem = analyzeContentType((Pattern)children.get(0));
       for (int i = 1, len = children.size(); i < len; i++)
-        tem = checkContentType("sorry_group", ContentType.group(tem, analyzeContentType(children.get(i))), p);
+        tem = checkContentType("sorry_group", ContentType.group(tem, analyzeContentType((Pattern)children.get(i))), p);
       return tem;
     }
 
-    public ContentType visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       String name = p.getName();
       Pattern def = getBody(name);
       if (def == null) {
@@ -232,17 +232,17 @@ class Analysis {
       return ContentType.ref(t);
     }
 
-    public ContentType visitParentRef(ParentRefPattern p) {
+    public Object visitParentRef(ParentRefPattern p) {
       er.error("sorry_parent_ref", p.getSourceLocation());
       return null;
     }
 
-    public ContentType visitGrammar(GrammarPattern p) {
+    public Object visitGrammar(GrammarPattern p) {
       if (defines != null) {
         er.error("sorry_nested_grammar", p.getSourceLocation());
         return ContentType.ERROR;
       }
-      defines = new HashMap<String, Pattern>();
+      defines = new HashMap();
       try {
         mainPart = new GrammarPart(er, defines, attlists, schemas, parts, p);
       }
@@ -255,31 +255,31 @@ class Analysis {
       return startType;
     }
 
-    public ContentType visitExternalRef(ExternalRefPattern p) {
+    public Object visitExternalRef(ExternalRefPattern p) {
       er.error("sorry_external_ref", p.getSourceLocation());
       return null;
     }
 
-    public ContentType visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       return checkContentType("sorry_mixed", ContentType.mixed(analyzeContentType(p.getChild())), p);
     }
 
-    public ContentType visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       return checkContentType("sorry_optional", ContentType.optional(analyzeContentTypeNullAncestorPattern(p.getChild())), p);
     }
 
-    public VoidValue visitContainer(Container c) {
-      List<Component> list = c.getComponents();
+    public Object visitContainer(Container c) {
+      List list = c.getComponents();
       for (int i = 0, len = list.size(); i < len; i++)
-        list.get(i).accept(this);
-      return VoidValue.VOID;
+        ((Component)list.get(i)).accept(this);
+      return null;
     }
 
-    public VoidValue visitDiv(DivComponent c) {
+    public Object visitDiv(DivComponent c) {
       return visitContainer(c);
     }
 
-    public VoidValue visitDefine(DefineComponent c) {
+    public Object visitDefine(DefineComponent c) {
       if (c.getName() == DefineComponent.START)
         startType = analyzeContentType(c.getBody());
       else
@@ -288,35 +288,35 @@ class Analysis {
         er.error("not_attlist", c.getName(), c.getSourceLocation());
         attlists.remove(c.getName());
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitInclude(IncludeComponent c) {
+    public Object visitInclude(IncludeComponent c) {
       includeContentChecker.visitContainer(c);
-      visitContainer((GrammarPattern)(schemas.getSchemaDocumentMap().get(c.getHref())).getPattern());
-      return VoidValue.VOID;
+      visitContainer((GrammarPattern)((SchemaDocument)schemas.getSchemaDocumentMap().get(c.getHref())).getPattern());
+      return null;
     }
 
-    public VoidValue visitChoice(ChoiceNameClass nc) {
-      List<NameClass> list = nc.getChildren();
+    public Object visitChoice(ChoiceNameClass nc) {
+      List list = nc.getChildren();
       for (int i = 0, len = list.size(); i < len; i++)
-        list.get(i).accept(this);
-      return VoidValue.VOID;
+        ((NameClass)list.get(i)).accept(this);
+      return ContentType.ELEMENT_CLASS;
     }
 
-    public VoidValue visitAnyName(AnyNameNameClass nc) {
+    public Object visitAnyName(AnyNameNameClass nc) {
       er.error("sorry_wildcard", nc.getSourceLocation());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitNsName(NsNameNameClass nc) {
+    public Object visitNsName(NsNameNameClass nc) {
       er.error("sorry_wildcard", nc.getSourceLocation());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitName(NameNameClass nc) {
+    public Object visitName(NameNameClass nc) {
       nsm.noteName(nc, true);
-      return VoidValue.VOID;
+      return ContentType.DIRECT_SINGLE_ELEMENT;
     }
 
     ContentType checkContentType(String key, ContentType t, Pattern p) {
@@ -327,9 +327,9 @@ class Analysis {
     }
 
     ContentType analyzeContentType(Pattern p) {
-      ContentType t = contentTypes.get(p);
+      ContentType t = (ContentType)contentTypes.get(p);
       if (t == null) {
-        t = p.accept(this);
+        t = (ContentType)p.accept(this);
         contentTypes.put(p, t);
       }
       return t;
@@ -341,105 +341,101 @@ class Analysis {
 
   }
 
-  class IncludeContentChecker implements ComponentVisitor<VoidValue> {
-    public VoidValue visitContainer(Container c) {
-      List<Component> list = c.getComponents();
+  class IncludeContentChecker extends AbstractVisitor {
+    public Object visitContainer(Container c) {
+      List list = c.getComponents();
       for (int i = 0, len = list.size(); i < len; i++)
-        list.get(i).accept(this);
-      return VoidValue.VOID;
+        ((Component)list.get(i)).accept(this);
+      return null;
     }
 
-    public VoidValue visitDefine(DefineComponent c) {
+    public Object visitDefine(DefineComponent c) {
       er.error("sorry_include_override", c.getSourceLocation());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitDiv(DivComponent c) {
+    public Object visitDiv(DivComponent c) {
       return visitContainer(c);
-    }
-
-    public VoidValue visitInclude(IncludeComponent c) {
-      return VoidValue.VOID;
     }
   }
 
-  private class AttributeTyper extends AbstractPatternVisitor<AttributeType> {
-    public AttributeType visitPattern(Pattern p) {
+  class AttributeTyper extends AbstractVisitor {
+    public Object visitPattern(Pattern p) {
       return AttributeType.EMPTY;
     }
 
-    public AttributeType visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       return getAttributeType(p.getChild());
     }
 
-    public AttributeType visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       return getAttributeType(p.getChild());
     }
 
-    public AttributeType visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       return getAttributeType(p.getChild());
     }
 
-    public AttributeType visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       return getAttributeType(p.getChild());
     }
 
-    public AttributeType visitComposite(CompositePattern p) {
-      List<Pattern> list = p.getChildren();
-      AttributeType at = getAttributeType(list.get(0));
+    public Object visitComposite(CompositePattern p) {
+      List list = p.getChildren();
+      AttributeType at = getAttributeType((Pattern)list.get(0));
       for (int i = 1, len = list.size(); i < len; i++)
-        at = AttributeType.group(at, getAttributeType(list.get(i)));
+        at = AttributeType.group(at, getAttributeType((Pattern)list.get(i)));
       return at;
     }
 
-    public AttributeType visitAttribute(AttributePattern p) {
+    public Object visitAttribute(AttributePattern p) {
       return AttributeType.SINGLE;
     }
 
-    public AttributeType visitEmpty(EmptyPattern p) {
+    public Object visitEmpty(EmptyPattern p) {
       return AttributeType.MULTI;
     }
 
-    public AttributeType visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       return getAttributeType(getBody(p.getName()));
     }
   }
 
 
-  private class AttributeAlphabetComputer extends AbstractPatternVisitor<Set<Name>> {
-    public Set<Name> visitPattern(Pattern p) {
-      return EMPTY_NAME_SET;
+  class AttributeAlphabetComputer extends AbstractVisitor {
+    public Object visitPattern(Pattern p) {
+      return Collections.EMPTY_SET;
     }
 
-    public Set<Name> visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       return getAttributeAlphabet(p.getChild());
     }
 
-    public Set<Name> visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       return getAttributeAlphabet(p.getChild());
     }
 
-    public Set<Name> visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       return getAttributeAlphabet(p.getChild());
     }
 
-    public Set<Name> visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       return getAttributeAlphabet(p.getChild());
     }
 
-    public Set<Name> visitComposite(CompositePattern p) {
-      List<Pattern> list = p.getChildren();
-      Set<Name> result = new HashSet<Name>();
+    public Object visitComposite(CompositePattern p) {
+      List list = p.getChildren();
+      Set result = new HashSet();
       for (int i = 0, len = list.size(); i < len; i++)
-        result.addAll(getAttributeAlphabet(list.get(i)));
+        result.addAll(getAttributeAlphabet((Pattern)list.get(i)));
       return result;
     }
 
-    public Set<Name> visitAttribute(AttributePattern p) {
-      Set<Name> result = new HashSet<Name>();
-      List<NameNameClass> names = NameClassSplitter.split(p.getNameClass());
+    public Object visitAttribute(AttributePattern p) {
+      Set result = new HashSet();
+      List names = NameClassSplitter.split(p.getNameClass());
       for (int i = 0, len = names.size(); i < len; i++) {
-        NameNameClass nnc = names.get(i);
+        NameNameClass nnc = (NameNameClass)names.get(i);
         String ns = nnc.getNamespaceUri();
         if (ns == NameClass.INHERIT_NS)
           ns = "";
@@ -448,43 +444,44 @@ class Analysis {
       return result;
     }
 
-    public Set<Name> visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       return getAttributeAlphabet(getBody(p.getName()));
     }
   }
 
-  private class AttributeNamespacesComputer extends AbstractPatternVisitor<Set<String>> {
-    public Set<String> visitPattern(Pattern p) {
-      return EMPTY_STRING_SET;
+  class AttributeNamespacesComputer extends AbstractVisitor {
+    public Object visitPattern(Pattern p) {
+      return Collections.EMPTY_SET;
     }
 
-    public Set<String> visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       return getAttributeNamespaces(p.getChild());
     }
 
-    public Set<String> visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       return getAttributeNamespaces(p.getChild());
     }
 
-    public Set<String> visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       return getAttributeNamespaces(p.getChild());
     }
 
-    public Set<String> visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       return getAttributeNamespaces(p.getChild());
     }
 
-    public Set<String> visitComposite(CompositePattern p) {
-      Set<String> result = EMPTY_STRING_SET;
+    public Object visitComposite(CompositePattern p) {
+      List list = p.getChildren();
+      Set result = Collections.EMPTY_SET;
       boolean newResult = false;
-      for (Pattern child : p.getChildren()) {
-        Set<String> tem = getAttributeNamespaces(child);
-        if (tem != EMPTY_STRING_SET && !result.containsAll(tem)) {
-          if (result == EMPTY_STRING_SET)
+      for (int i = 0, len = list.size(); i < len; i++) {
+        Set tem = getAttributeNamespaces((Pattern)list.get(i));
+        if (tem != Collections.EMPTY_SET && !result.containsAll(tem)) {
+          if (result == Collections.EMPTY_SET)
             result = tem;
           else {
             if (!newResult) {
-              result = new HashSet<String>(result);
+              result = new HashSet(result);
               newResult = true;
             }
             result.addAll(tem);
@@ -496,23 +493,23 @@ class Analysis {
       return result;
     }
 
-    public Set<String> visitAttribute(AttributePattern p) {
-      Set<String> result = null;
-      List<NameNameClass> names = NameClassSplitter.split(p.getNameClass());
-      for (NameNameClass name : names) {
-        String ns = name.getNamespaceUri();
+    public Object visitAttribute(AttributePattern p) {
+      Set result = null;
+      List names = NameClassSplitter.split(p.getNameClass());
+      for (int i = 0, len = names.size(); i < len; i++) {
+        String ns = ((NameNameClass)names.get(i)).getNamespaceUri();
         if (ns.length() != 0 && ns != NameClass.INHERIT_NS && !ns.equals(WellKnownNamespaces.XML)) {
           if (result == null)
-            result = new HashSet<String>();
+            result = new HashSet();
           result.add(ns);
         }
       }
       if (result == null)
-        return EMPTY_STRING_SET;
+        return Collections.EMPTY_SET;
       return Collections.unmodifiableSet(result);
     }
 
-    public Set<String> visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       return getAttributeNamespaces(getBody(p.getName()));
     }
   }
@@ -531,17 +528,18 @@ class Analysis {
     checkAttlists();
     if (!er.getHadError())
       nsm.assignPrefixes();
-    defines = null;
   }
 
   private void checkAttlists() {
-    for (String name : attlists)
+    for (Iterator iter = attlists.iterator(); iter.hasNext();) {
+      String name = (String)iter.next();
       if (getParamEntityElementName(name) == null)
         er.error("not_attlist", name, getBody(name).getSourceLocation());
+    }
   }
 
   Pattern getPattern() {
-    return (schemas.getSchemaDocumentMap().get(schemas.getMainUri())).getPattern();
+    return ((SchemaDocument)schemas.getSchemaDocumentMap().get(schemas.getMainUri())).getPattern();
   }
 
   String getPrefixForNamespaceUri(String ns) {
@@ -557,39 +555,39 @@ class Analysis {
   }
 
   ContentType getContentType(Pattern p) {
-    return contentTypes.get(p);
+    return (ContentType)contentTypes.get(p);
   }
 
   AttributeType getAttributeType(Pattern p) {
-    AttributeType at = attributeTypes.get(p);
+    AttributeType at = (AttributeType)attributeTypes.get(p);
     if (at == null) {
-      at = p.accept(attributeTyper);
+      at = (AttributeType)p.accept(attributeTyper);
       attributeTypes.put(p, at);
     }
     return at;
   }
 
-  Set<Name> getAttributeAlphabet(Pattern p) {
-    Set<Name> aa = attributeAlphabets.get(p);
+  Set getAttributeAlphabet(Pattern p) {
+    Set aa = (Set)attributeAlphabets.get(p);
     if (aa == null) {
-      aa = Collections.unmodifiableSet(p.accept(attributeAlphabetComputer));
+      aa = Collections.unmodifiableSet((Set)p.accept(attributeAlphabetComputer));
       attributeAlphabets.put(p, aa);
     }
     return aa;
   }
 
 
-  Set<String> getAttributeNamespaces(Pattern p) {
-    Set<String> aa = attributeNamespaces.get(p);
+  Set getAttributeNamespaces(Pattern p) {
+    Set aa = (Set)attributeNamespaces.get(p);
     if (aa == null) {
-      aa = p.accept(attributeNamespacesComputer);
+      aa = (Set)p.accept(attributeNamespacesComputer);
       attributeNamespaces.put(p, aa);
     }
     return aa;
   }
 
   Pattern getBody(String name) {
-    return defines.get(name);
+    return (Pattern)defines.get(name);
   }
 
   GrammarPattern getGrammarPattern() {
@@ -604,14 +602,14 @@ class Analysis {
     if (sourceUri.equals(schemas.getMainUri()))
       return mainPart;
     else
-      return parts.get(sourceUri);
+      return (GrammarPart)parts.get(sourceUri);
   }
 
   Pattern getSchema(String sourceUri) {
-    return (schemas.getSchemaDocumentMap().get(sourceUri)).getPattern();
+    return ((SchemaDocument)schemas.getSchemaDocumentMap().get(sourceUri)).getPattern();
   }
 
   String getEncoding(String sourceUri) {
-    return (schemas.getSchemaDocumentMap().get(sourceUri)).getEncoding();
+    return ((SchemaDocument)schemas.getSchemaDocumentMap().get(sourceUri)).getEncoding();
   }
 }

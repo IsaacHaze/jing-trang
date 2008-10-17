@@ -4,9 +4,9 @@ import com.thaiopensource.util.PropertyMapBuilder;
 import com.thaiopensource.validate.Flag;
 import com.thaiopensource.validate.SchemaReader;
 import com.thaiopensource.validate.ValidationDriver;
-import com.thaiopensource.validate.prop.rng.RngProperty;
-import com.thaiopensource.validate.prop.schematron.SchematronProperty;
+import com.thaiopensource.validate.schematron.SchematronProperty;
 import com.thaiopensource.validate.rng.CompactSchemaReader;
+import com.thaiopensource.validate.rng.RngProperty;
 import com.thaiopensource.xml.sax.ErrorHandlerImpl;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
@@ -64,10 +64,10 @@ public class JingTask extends Task {
   public void execute() throws BuildException {
     if (schemaFile == null)
       throw new BuildException("There must be an rngFile or schemaFile attribute",
-			       getLocation());
+			       location);
     if (src == null && filesets.size() == 0)
       throw new BuildException("There must be a file attribute or a fileset child element",
-			       getLocation());
+			       location);
 
     ErrorHandlerImpl eh = new LogErrorHandler();
 
@@ -84,8 +84,8 @@ public class JingTask extends Task {
 	}
 	for (int i = 0; i < filesets.size(); i++) {
 	  FileSet fs = (FileSet)filesets.elementAt(i);
-	  DirectoryScanner ds = fs.getDirectoryScanner(getProject());
-	  File dir = fs.getDir(getProject());
+	  DirectoryScanner ds = fs.getDirectoryScanner(project);
+	  File dir = fs.getDir(project);
 	  String[] srcs = ds.getIncludedFiles();
 	  for (int j = 0; j < srcs.length; j++) {
 	    if (!driver.validate(ValidationDriver.fileInputSource(new File(dir, srcs[j]))))
@@ -103,7 +103,7 @@ public class JingTask extends Task {
       eh.printException(e);
     }
     if (hadError && failOnError)
-      throw new BuildException("Validation failed, messages should have been provided.", getLocation());
+      throw new BuildException("Validation failed, messages should have been provided.", location);
   }
 
   /**
@@ -112,7 +112,7 @@ public class JingTask extends Task {
    * @param rngFilename the attribute value
    */
   public void setRngfile(String rngFilename) {
-    schemaFile = getProject().resolveFile(rngFilename);
+    schemaFile = project.resolveFile(rngFilename);
   }
 
   /**
@@ -121,7 +121,7 @@ public class JingTask extends Task {
    * @param schemaFilename the attribute value
    */
   public void setSchemafile(String schemaFilename) {
-    schemaFile = getProject().resolveFile(schemaFilename);
+    schemaFile = project.resolveFile(schemaFilename);
   }
 
   public void setFile(File file) {

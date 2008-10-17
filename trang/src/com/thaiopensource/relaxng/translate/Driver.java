@@ -43,8 +43,8 @@ public class Driver {
   }
 
   private int doMain(String[] args) {
-    List<String> inputParams = new Vector<String>();
-    List<String> outputParams = new Vector<String>();
+    List inputParams = new Vector();
+    List outputParams = new Vector();
     try {
       OptionParser op = new OptionParser("I:O:i:o:", args);
       try {
@@ -116,7 +116,7 @@ public class Driver {
         error(localizer.message("unrecognized_output_type", outputType));
         return 2;
       }
-      String[] inputParamArray = inputParams.toArray(new String[0]);
+      String[] inputParamArray = (String[])inputParams.toArray(new String[0]);
       outputType = outputType.toLowerCase();
       SchemaCollection sc;
       if (args.length > 2) {
@@ -139,7 +139,7 @@ public class Driver {
                                                     DEFAULT_OUTPUT_ENCODING,
                                                     DEFAULT_LINE_LENGTH,
                                                     DEFAULT_INDENT);
-      of.output(sc, od, outputParams.toArray(new String[0]), inputType.toLowerCase(), eh);
+      of.output(sc, od, (String[])outputParams.toArray(new String[0]), inputType.toLowerCase(), eh);
       return 0;
     }
     catch (OutputFailedException e) {

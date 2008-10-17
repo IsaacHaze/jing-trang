@@ -1,59 +1,62 @@
 package com.thaiopensource.relaxng.output.xsd.basic;
 
-import com.thaiopensource.util.VoidValue;
+import com.thaiopensource.relaxng.edit.SourceLocation;
 
-public abstract class SchemaWalker implements ParticleVisitor<VoidValue>, SimpleTypeVisitor<VoidValue>,
-        SchemaVisitor, ComplexTypeVisitor<VoidValue>, AttributeUseVisitor<VoidValue> {
-  public VoidValue visitElement(Element p) {
+import java.util.List;
+import java.util.Iterator;
+
+public abstract class SchemaWalker implements
+        ParticleVisitor, SimpleTypeVisitor, SchemaVisitor, ComplexTypeVisitor, AttributeUseVisitor {
+  public Object visitElement(Element p) {
     return p.getComplexType().accept(this);
   }
 
-  public VoidValue visitWildcardElement(WildcardElement p) {
-    return VoidValue.VOID;
+  public Object visitWildcardElement(WildcardElement p) {
+    return null;
   }
 
-  public VoidValue visitRepeat(ParticleRepeat p) {
+  public Object visitRepeat(ParticleRepeat p) {
     return p.getChild().accept(this);
   }
 
-  public VoidValue visitSequence(ParticleSequence p) {
+  public Object visitSequence(ParticleSequence p) {
     return visitGroup(p);
   }
 
-  public VoidValue visitChoice(ParticleChoice p) {
+  public Object visitChoice(ParticleChoice p) {
     return visitGroup(p);
   }
 
-  public VoidValue visitAll(ParticleAll p) {
+  public Object visitAll(ParticleAll p) {
     return visitGroup(p);
   }
 
-  public VoidValue visitGroup(ParticleGroup p) {
-    for (Particle child : p.getChildren())
-      child.accept(this);
-    return VoidValue.VOID;
+  public Object visitGroup(ParticleGroup p) {
+    for (Iterator iter = p.getChildren().iterator(); iter.hasNext();)
+      ((Particle)iter.next()).accept(this);
+    return null;
   }
 
-  public VoidValue visitGroupRef(GroupRef p) {
-    return VoidValue.VOID;
+  public Object visitGroupRef(GroupRef p) {
+    return null;
   }
 
-  public VoidValue visitRestriction(SimpleTypeRestriction t) {
-    return VoidValue.VOID;
+  public Object visitRestriction(SimpleTypeRestriction t) {
+    return null;
   }
 
-  public VoidValue visitUnion(SimpleTypeUnion t) {
-    for (SimpleType child : t.getChildren())
-      child.accept(this);
-    return VoidValue.VOID;
+  public Object visitUnion(SimpleTypeUnion t) {
+    for (Iterator iter = t.getChildren().iterator(); iter.hasNext();)
+      ((SimpleType)iter.next()).accept(this);
+    return null;
   }
 
-  public VoidValue visitList(SimpleTypeList t) {
+  public Object visitList(SimpleTypeList t) {
     return t.getItemType().accept(this);
   }
 
-  public VoidValue visitRef(SimpleTypeRef t) {
-    return VoidValue.VOID;
+  public Object visitRef(SimpleTypeRef t) {
+    return null;
   }
 
   public void visitGroup(GroupDefinition def) {
@@ -64,31 +67,31 @@ public abstract class SchemaWalker implements ParticleVisitor<VoidValue>, Simple
     def.getAttributeUses().accept(this);
   }
 
-  public VoidValue visitAttribute(Attribute a) {
+  public Object visitAttribute(Attribute a) {
     if (a.getType() == null)
-      return VoidValue.VOID;
+      return null;
     return a.getType().accept(this);
   }
 
-  public VoidValue visitWildcardAttribute(WildcardAttribute a) {
-    return VoidValue.VOID;
+  public Object visitWildcardAttribute(WildcardAttribute a) {
+    return null;
   }
 
-  public VoidValue visitOptionalAttribute(OptionalAttribute a) {
+  public Object visitOptionalAttribute(OptionalAttribute a) {
     return a.getAttribute().accept(this);
   }
 
-  public VoidValue visitAttributeGroupRef(AttributeGroupRef a) {
-    return VoidValue.VOID;
+  public Object visitAttributeGroupRef(AttributeGroupRef a) {
+    return null;
   }
 
-  public VoidValue visitAttributeGroup(AttributeGroup a) {
-    for (AttributeUse child : a.getChildren())
-      child.accept(this);
-    return VoidValue.VOID;
+  public Object visitAttributeGroup(AttributeGroup a) {
+    for (Iterator iter = a.getChildren().iterator(); iter.hasNext();)
+      ((AttributeUse)iter.next()).accept(this);
+    return null;
   }
 
-  public VoidValue visitAttributeUseChoice(AttributeUseChoice a) {
+  public Object visitAttributeUseChoice(AttributeUseChoice a) {
     return visitAttributeGroup(a);
   }
 
@@ -107,19 +110,19 @@ public abstract class SchemaWalker implements ParticleVisitor<VoidValue>, Simple
   public void visitComment(Comment comment) {
   }
 
-  public VoidValue visitComplexContent(ComplexTypeComplexContent t) {
+  public Object visitComplexContent(ComplexTypeComplexContent t) {
     t.getAttributeUses().accept(this);
     if (t.getParticle() == null)
-      return VoidValue.VOID;
+      return null;
     return t.getParticle().accept(this);
   }
 
-  public VoidValue visitSimpleContent(ComplexTypeSimpleContent t) {
+  public Object visitSimpleContent(ComplexTypeSimpleContent t) {
     t.getAttributeUses().accept(this);
     return t.getSimpleType().accept(this);
   }
 
-  public VoidValue visitNotAllowedContent(ComplexTypeNotAllowedContent t) {
-    return VoidValue.VOID;
+  public Object visitNotAllowedContent(ComplexTypeNotAllowedContent t) {
+    return null;
   }
 }

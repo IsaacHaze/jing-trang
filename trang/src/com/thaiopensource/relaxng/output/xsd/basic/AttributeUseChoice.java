@@ -5,11 +5,11 @@ import com.thaiopensource.relaxng.edit.SourceLocation;
 import java.util.List;
 
 public class AttributeUseChoice extends AttributeGroup {
-  public AttributeUseChoice(SourceLocation location, Annotation annotation, List<AttributeUse> children) {
+  public AttributeUseChoice(SourceLocation location, Annotation annotation, List children) {
     super(location, annotation, children);
   }
 
-  public <T> T accept(AttributeUseVisitor<T> visitor) {
+  public Object accept(AttributeUseVisitor visitor) {
     return visitor.visitAttributeUseChoice(this);
   }
 }

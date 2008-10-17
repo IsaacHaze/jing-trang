@@ -8,7 +8,6 @@ import com.thaiopensource.validate.Option;
 import com.thaiopensource.validate.Schema;
 import com.thaiopensource.validate.SchemaReader;
 import com.thaiopensource.validate.ValidateProperty;
-import com.thaiopensource.validate.prop.wrap.WrapProperty;
 import com.thaiopensource.validate.auto.AutoSchemaReader;
 import com.thaiopensource.validate.auto.SchemaFuture;
 import com.thaiopensource.validate.auto.SchemaReceiver;
@@ -37,7 +36,7 @@ class SchemaReceiverImpl implements SchemaReceiver {
   };
 
   public SchemaReceiverImpl(PropertyMap properties) {
-    this.attributesSchema = properties.contains(WrapProperty.ATTRIBUTES);
+    this.attributesSchema = properties.contains(NrlProperty.ATTRIBUTES_SCHEMA);
     PropertyMapBuilder builder = new PropertyMapBuilder();
     for (int i = 0; i < subSchemaProperties.length; i++) {
       Object value = properties.get(subSchemaProperties[i]);
@@ -51,7 +50,7 @@ class SchemaReceiverImpl implements SchemaReceiver {
   public SchemaFuture installHandlers(XMLReader xr) {
     PropertyMapBuilder builder = new PropertyMapBuilder(properties);
     if (attributesSchema)
-      WrapProperty.ATTRIBUTES.add(builder);
+      NrlProperty.ATTRIBUTES_SCHEMA.add(builder);
     return new SchemaImpl(builder.toPropertyMap()).installHandlers(xr, this);
   }
 
@@ -83,7 +82,7 @@ class SchemaReceiverImpl implements SchemaReceiver {
     SchemaReader reader = isRnc(schemaType) ? CompactSchemaReader.getInstance() : autoSchemaReader;
     PropertyMapBuilder builder = new PropertyMapBuilder(properties);
     if (isAttributesSchema)
-      WrapProperty.ATTRIBUTES.add(builder);
+      NrlProperty.ATTRIBUTES_SCHEMA.add(builder);
     for (int i = 0, len = options.size(); i < len; i++)
       builder.put(options.getKey(i), options.get(options.getKey(i)));
     return reader.createSchema(inputSource, builder.toPropertyMap());

@@ -20,7 +20,7 @@ public class SimpleTypeList extends SimpleType {
     return occurs;
   }
 
-  public <T> T accept(SimpleTypeVisitor<T> visitor) {
+  public Object accept(SimpleTypeVisitor visitor) {
     return visitor.visitList(this);
   }
 

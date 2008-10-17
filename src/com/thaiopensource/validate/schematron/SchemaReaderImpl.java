@@ -10,9 +10,8 @@ import com.thaiopensource.validate.SchemaReader;
 import com.thaiopensource.validate.ValidateProperty;
 import com.thaiopensource.validate.Validator;
 import com.thaiopensource.validate.Option;
-import com.thaiopensource.validate.prop.rng.RngProperty;
-import com.thaiopensource.validate.prop.schematron.SchematronProperty;
 import com.thaiopensource.validate.rng.CompactSchemaReader;
+import com.thaiopensource.validate.rng.RngProperty;
 import com.thaiopensource.xml.sax.CountingErrorHandler;
 import com.thaiopensource.xml.sax.DelegatingContentHandler;
 import com.thaiopensource.xml.sax.DraconianErrorHandler;
@@ -36,9 +35,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.sax.SAXTransformerFactory;
-import javax.xml.transform.sax.TransformerHandler;
-import javax.xml.transform.sax.TemplatesHandler;
 import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,7 +57,7 @@ class SchemaReaderImpl implements SchemaReader {
     SchematronProperty.PHASE,
   };
 
-  SchemaReaderImpl(SAXTransformerFactory transformerFactory) throws TransformerConfigurationException, IncorrectSchemaException {
+  SchemaReaderImpl(TransformerFactory transformerFactory) throws TransformerConfigurationException, IncorrectSchemaException {
     this.transformerFactoryClass = transformerFactory.getClass();
     String resourceName = fullResourceName(SCHEMATRON_STYLESHEET);
     StreamSource source = new StreamSource(getResourceAsStream(resourceName));
@@ -308,7 +304,7 @@ class SchemaReaderImpl implements SchemaReader {
       catch (TransformerException e) {
         if (e.getException() instanceof IOException)
           throw (IOException)e.getException();
-        throw toSAXException(e);
+        throw ValidatorImpl.toSAXException(e);
       }
       if (ceh.getHadErrorOrFatalError())
         throw new SAXException(new IncorrectSchemaException());
@@ -395,58 +391,6 @@ class SchemaReaderImpl implements SchemaReader {
      }
    }
 
-
-  // This is an alternative approach for implementing createSchema.
-  // This approach uses SAXTransformerFactory. We will stick with
-  // the original for now since it works and is debugged.  Also
-  // Saxon 6.5.2 prints to System.err in TemplatesHandlerImpl.getTemplates().
-
-  private Schema createSchema2(InputSource in, PropertyMap properties)
-            throws IOException, SAXException, IncorrectSchemaException {
-    ErrorHandler eh = ValidateProperty.ERROR_HANDLER.get(properties);
-    CountingErrorHandler ceh = new CountingErrorHandler(eh);
-    String systemId = in.getSystemId();
-    try {
-      SAXTransformerFactory factory = (SAXTransformerFactory)transformerFactoryClass.newInstance();
-      initTransformerFactory(factory);
-      TransformerHandler transformerHandler = factory.newTransformerHandler(schematron);
-      // XXX set up phase and diagnose
-      PropertyMapBuilder builder = new PropertyMapBuilder(properties);
-      ValidateProperty.ERROR_HANDLER.put(builder, ceh);
-      Validator validator = schematronSchema.createValidator(builder.toPropertyMap());
-      XMLReaderCreator xrc = ValidateProperty.XML_READER_CREATOR.get(properties);
-      XMLReader xr = xrc.createXMLReader();
-      xr.setContentHandler(new ForkContentHandler(validator.getContentHandler(),
-                                                  transformerHandler));
-      factory.setErrorListener(new SAXErrorListener(ceh, systemId));
-      TemplatesHandler templatesHandler = factory.newTemplatesHandler();
-      LocationFilter stage2 = new LocationFilter(new ErrorFilter(templatesHandler, ceh, localizer), systemId);
-      transformerHandler.setResult(new SAXResult(stage2));
-      xr.setErrorHandler(ceh);
-      xr.parse(in);
-      SAXException exception = stage2.getException();
-      if (exception != null)
-        throw exception;
-      if (ceh.getHadErrorOrFatalError())
-        throw new IncorrectSchemaException();
-      return new SchemaImpl(templatesHandler.getTemplates(),
-                            transformerFactoryClass,
-                            properties,
-                            supportedPropertyIds);
-    }
-    catch (TransformerConfigurationException e) {
-      throw new SAXException(localizer.message("unexpected_schema_creation_error"));
-    }
-    catch (InstantiationException e) {
-      throw new SAXException(e);
-    }
-    catch (IllegalAccessException e) {
-      throw new SAXException(e);
-    }
-  }
-
-  // This implementation was written in ignorance of SAXTransformerFactory.
-
   public Schema createSchema(InputSource in, PropertyMap properties)
           throws IOException, SAXException, IncorrectSchemaException {
     ErrorHandler eh = ValidateProperty.ERROR_HANDLER.get(properties);
@@ -466,7 +410,7 @@ class SchemaReaderImpl implements SchemaReader {
       initTransformerFactory(transformerFactory);
       transformerFactory.setErrorListener(errorListener);
       Templates templates = transformerFactory.newTemplates(source);
-      return new SchemaImpl(templates, transformerFactoryClass, properties, supportedPropertyIds);
+      return new SchemaImpl(templates, properties, supportedPropertyIds);
     }
     catch (TransformerConfigurationException e) {
       throw toSAXException(e, errorListener.getHadError()
@@ -551,17 +495,5 @@ class SchemaReaderImpl implements SchemaReader {
       return ClassLoader.getSystemResourceAsStream(resourceName);
     else
       return cl.getResourceAsStream(resourceName);
-  }
-
-  static SAXException toSAXException(TransformerException transformerException) {
-    // Unwrap where possible
-    Throwable wrapped = transformerException.getException();
-    if (wrapped instanceof SAXException)
-      return (SAXException)wrapped;
-    if (wrapped instanceof RuntimeException)
-      throw (RuntimeException)wrapped;
-    if (wrapped instanceof Exception)
-      return new SAXException((Exception)wrapped);
-    return new SAXException(transformerException);
   }
 }

@@ -1,21 +1,20 @@
 package com.thaiopensource.relaxng.output.common;
 
-import com.thaiopensource.relaxng.edit.AnyNameNameClass;
+import com.thaiopensource.relaxng.edit.AbstractVisitor;
+import com.thaiopensource.relaxng.edit.NameNameClass;
 import com.thaiopensource.relaxng.edit.ChoiceNameClass;
 import com.thaiopensource.relaxng.edit.NameClass;
-import com.thaiopensource.relaxng.edit.NameClassVisitor;
-import com.thaiopensource.relaxng.edit.NameNameClass;
+import com.thaiopensource.relaxng.edit.AnyNameNameClass;
 import com.thaiopensource.relaxng.edit.NsNameNameClass;
-import com.thaiopensource.util.VoidValue;
 
 import java.util.List;
 import java.util.Vector;
 
-public class NameClassSplitter implements NameClassVisitor<VoidValue> {
-  private final List<NameNameClass> names = new Vector<NameNameClass>();
+public class NameClassSplitter extends AbstractVisitor {
+  private final List names = new Vector();
   private boolean negative = false;
 
-  static public List<NameNameClass> split(NameClass nc) {
+  static public List split(NameClass nc) {
     NameClassSplitter splitter = new NameClassSplitter();
     nc.accept(splitter);
     return splitter.names;
@@ -24,19 +23,20 @@ public class NameClassSplitter implements NameClassVisitor<VoidValue> {
   private NameClassSplitter() {
   }
 
-  public VoidValue visitName(NameNameClass nc) {
+  public Object visitName(NameNameClass nc) {
     if (!negative)
       names.add(nc);
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitChoice(ChoiceNameClass nc) {
-    for (NameClass child : nc.getChildren())
-      child.accept(this);
-    return VoidValue.VOID;
+  public Object visitChoice(ChoiceNameClass nc) {
+    List list = nc.getChildren();
+    for (int i = 0, len = list.size(); i < len; i++)
+      ((NameClass)list.get(i)).accept(this);
+    return null;
   }
 
-  public VoidValue visitAnyName(AnyNameNameClass nc) {
+  public Object visitAnyName(AnyNameNameClass nc) {
     if (!negative) {
       NameClass except = nc.getExcept();
       if (except != null) {
@@ -45,10 +45,10 @@ public class NameClassSplitter implements NameClassVisitor<VoidValue> {
         negative = false;
       }
     }
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitNsName(NsNameNameClass nc) {
+  public Object visitNsName(NsNameNameClass nc) {
     if (negative) {
       NameClass except = nc.getExcept();
       if (except != null) {
@@ -57,7 +57,7 @@ public class NameClassSplitter implements NameClassVisitor<VoidValue> {
         except.accept(this);
         negative = true;
         for (int i = startIndex, len = names.size(); i < len; i++) {
-          if (!(names.get(i)).getNamespaceUri().equals(nc.getNs())) {
+          if (!((NameNameClass)names.get(i)).getNamespaceUri().equals(nc.getNs())) {
             names.remove(i);
             i--;
             len--;
@@ -65,6 +65,6 @@ public class NameClassSplitter implements NameClassVisitor<VoidValue> {
         }
       }
     }
-    return VoidValue.VOID;
+    return null;
   }
 }

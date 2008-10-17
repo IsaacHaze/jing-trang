@@ -4,7 +4,7 @@ public class ComplexTypeNotAllowedContent extends ComplexType {
   public ComplexTypeNotAllowedContent() {
   }
 
-  public <T> T accept(ComplexTypeVisitor<T> visitor) {
+  public Object accept(ComplexTypeVisitor visitor) {
     return visitor.visitNotAllowedContent(this);
   }
 }

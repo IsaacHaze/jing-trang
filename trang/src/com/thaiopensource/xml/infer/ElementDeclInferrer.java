@@ -1,31 +1,33 @@
 package com.thaiopensource.xml.infer;
 
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Iterator;
 
 class ElementDeclInferrer {
   private final DatatypeRepertoire datatypes;
   private ContentModelInferrer contentModelInferrer;
-  private final Map<Name, DatatypeInferrer> attributeTypeMap = new HashMap<Name, DatatypeInferrer>();
+  private final Map attributeTypeMap = new HashMap();
   private DatatypeInferrer valueInferrer;
-  private final Set<Name> requiredAttributeNames = new HashSet<Name>();
-  private Set<Name> mixedContentNames = null;
+  private final Set requiredAttributeNames = new HashSet();
+  private Set mixedContentNames = null;
 
-  ElementDeclInferrer(DatatypeRepertoire datatypes, List<Name> attributeNames) {
+  ElementDeclInferrer(DatatypeRepertoire datatypes, List attributeNames) {
     this.datatypes = datatypes;
     requiredAttributeNames.addAll(attributeNames);
   }
 
   ElementDecl infer() {
     ElementDecl decl = new ElementDecl();
-    for (Map.Entry<Name, DatatypeInferrer> entry : attributeTypeMap.entrySet()) {
+    for (Iterator iter = attributeTypeMap.entrySet().iterator(); iter.hasNext();) {
+      Map.Entry entry = (Map.Entry)iter.next();
       decl.getAttributeDecls().put(entry.getKey(),
-                                   new AttributeDecl((entry.getValue()).getTypeName(),
+                                   new AttributeDecl(((DatatypeInferrer)entry.getValue()).getTypeName(),
                                                      !requiredAttributeNames.contains(entry.getKey())));
     }
     if (contentModelInferrer != null)
@@ -48,8 +50,8 @@ class ElementDeclInferrer {
 
   private Particle makeMixedContentModel() {
     Particle p = new TextParticle();
-    for (Name name : mixedContentNames)
-      p = new ChoiceParticle(p, new ElementParticle(name));
+    for (Iterator iter = mixedContentNames.iterator(); iter.hasNext();)
+      p = new ChoiceParticle(p, new ElementParticle((Name)iter.next()));
     return new OneOrMoreParticle(p);
   }
 
@@ -97,7 +99,7 @@ class ElementDeclInferrer {
 
   private void useMixedContent() {
     if (mixedContentNames == null) {
-      mixedContentNames = new HashSet<Name>();
+      mixedContentNames = new HashSet();
       if (contentModelInferrer != null) {
         mixedContentNames.addAll(contentModelInferrer.getElementNames());
         contentModelInferrer = null;
@@ -106,12 +108,12 @@ class ElementDeclInferrer {
     }
   }
 
-  void addAttributeNames(List<Name> attributeNames) {
+  void addAttributeNames(List attributeNames) {
     requiredAttributeNames.retainAll(attributeNames);
   }
 
   void addAttributeValue(Name name, String value) {
-    DatatypeInferrer dt = attributeTypeMap.get(name);
+    DatatypeInferrer dt = (DatatypeInferrer)attributeTypeMap.get(name);
     if (dt == null) {
       dt = new DatatypeInferrer(datatypes, value);
       attributeTypeMap.put(name, dt);

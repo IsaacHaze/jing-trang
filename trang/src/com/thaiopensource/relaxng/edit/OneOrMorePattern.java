@@ -5,7 +5,7 @@ public class OneOrMorePattern extends UnaryPattern {
     super(child);
   }
 
-  public <T> T accept(PatternVisitor<T> visitor) {
+  public Object accept(PatternVisitor visitor) {
     return visitor.visitOneOrMore(this);
   }
 }

@@ -18,13 +18,13 @@ class NamespaceManager {
     /**
      * maps prefixes to namespaces
      */
-    private final Map<String, String> prefixMap;
+    private final Map prefixMap;
     /**
      * maps namespaces to preferred non-empty prefix
      */
-    private final Map<String, String> nsMap;
+    private final Map nsMap;
 
-    private NamespaceBindings(Map<String, String> prefixMap, Map<String, String> nsMap) {
+    private NamespaceBindings(Map prefixMap, Map nsMap) {
       this.prefixMap = prefixMap;
       this.nsMap = nsMap;
     }
@@ -34,7 +34,7 @@ class NamespaceManager {
      * ns may be empty string
      */
     String getNonEmptyPrefix(String ns) {
-      return nsMap.get(ns);
+      return (String)nsMap.get(ns);
     }
 
     /**
@@ -42,10 +42,10 @@ class NamespaceManager {
      * if no binding, return null
      */
     String getNamespaceUri(String prefix) {
-      return prefixMap.get(prefix);
+      return (String)prefixMap.get(prefix);
     }
 
-    Set<String> getPrefixes() {
+    Set getPrefixes() {
       return prefixMap.keySet();
     }
 
@@ -54,7 +54,7 @@ class NamespaceManager {
   /**
    * maps a namespaceUri to Boolean; true means empty prefix is OK
    */
-  private final Map<String, Boolean> requiredNamespaces = new HashMap<String, Boolean>();
+  private final Map requiredNamespaces = new HashMap();
 
   static private final String[] conventionalBindings = {
     // prefix, namespaceUri
@@ -105,11 +105,11 @@ class NamespaceManager {
   /**
    * map Binding to BindingUsage
    */
-  private final Map<Binding, BindingUsage> bindingUsageMap = new HashMap<Binding, BindingUsage>();
+  private final Map bindingUsageMap = new HashMap();
 
   void requireNamespace(String ns, boolean prefixMaybeEmpty) {
-    Boolean b = requiredNamespaces.get(ns);
-    if (b == null || (b && !prefixMaybeEmpty)) {
+    Boolean b = (Boolean)requiredNamespaces.get(ns);
+    if (b == null || (b.booleanValue() && !prefixMaybeEmpty)) {
       b = prefixMaybeEmpty ? Boolean.TRUE : Boolean.FALSE;
       requiredNamespaces.put(ns, b);
     }
@@ -133,7 +133,7 @@ class NamespaceManager {
     if (ns.equals(WellKnownNamespaces.XML))
       return;
     Binding b = new Binding(prefix, ns);
-    BindingUsage bu = bindingUsageMap.get(b);
+    BindingUsage bu = (BindingUsage)bindingUsageMap.get(b);
     if (bu == null) {
       bu = new BindingUsage();
       bindingUsageMap.put(b, bu);
@@ -143,16 +143,18 @@ class NamespaceManager {
     bu.usageCount++;
   }
 
-  private class BindingComparator implements Comparator<Binding> {
-    public int compare(Binding b1, Binding b2) {
-      BindingUsage bu1 = bindingUsageMap.get(b1);
-      BindingUsage bu2 = bindingUsageMap.get(b2);
+  class BindingComparator implements Comparator {
+    public int compare(Object o1, Object o2) {
+      BindingUsage bu1 = (BindingUsage)bindingUsageMap.get(o1);
+      BindingUsage bu2 = (BindingUsage)bindingUsageMap.get(o2);
       // required precedes not required
       if (bu1.required != bu2.required)
         return bu1.required ? -1 : 1;
       // more usage precedes less usage
       if (bu1.usageCount != bu2.usageCount)
         return bu2.usageCount - bu1.usageCount;
+      Binding b1 = (Binding)o1;
+      Binding b2 = (Binding)o2;
       // Make it a total order to avoid depending on order of
       // iteration over HashSet.
       // prefer shorter prefix
@@ -167,20 +169,20 @@ class NamespaceManager {
 
   NamespaceBindings createBindings() {
     // maps prefix representing a string to a namespaceUri
-    Map<String, String> prefixMap = new HashMap<String, String>();
+    Map prefixMap = new HashMap();
     // maps namespace to preferred non-empty prefix
-    Map<String, String> nsMap = new HashMap<String, String>();
+    Map nsMap = new HashMap();
     prefixMap.put("xml", WellKnownNamespaces.XML);
     requiredNamespaces.remove(WellKnownNamespaces.XML);
-    List<Binding> bindingList = new Vector<Binding>();
+    List bindingList = new Vector();
     bindingList.addAll(bindingUsageMap.keySet());
     Collections.sort(bindingList, new BindingComparator());
-    for (Iterator<Binding> iter = bindingList.iterator(); iter.hasNext();) {
-      Binding binding = iter.next();
+    for (Iterator iter = bindingList.iterator(); iter.hasNext();) {
+      Binding binding = (Binding)iter.next();
       if (prefixMap.get(binding.prefix) == null) {
-        Boolean defaultOK = requiredNamespaces.get(binding.namespaceUri);
-        boolean satisfiesRequirement = defaultOK != null && (binding.prefix.length() > 0 || defaultOK);
-        if ((bindingUsageMap.get(binding)).required || satisfiesRequirement) {
+        Boolean defaultOK = (Boolean)requiredNamespaces.get(binding.namespaceUri);
+        boolean satisfiesRequirement = defaultOK != null && (binding.prefix.length() > 0 || defaultOK.booleanValue());
+        if (((BindingUsage)bindingUsageMap.get(binding)).required || satisfiesRequirement) {
           prefixMap.put(binding.prefix, binding.namespaceUri);
           iter.remove();
           if (satisfiesRequirement)
@@ -191,7 +193,8 @@ class NamespaceManager {
       }
     }
     // use any of the bindings that we haven't yet used that don't conflict
-    for (Binding binding : bindingList) {
+    for (Iterator iter = bindingList.iterator(); iter.hasNext();) {
+      Binding binding = (Binding)iter.next();
       if (prefixMap.get(binding.prefix) == null) {
         prefixMap.put(binding.prefix, binding.namespaceUri);
       }
@@ -200,8 +203,8 @@ class NamespaceManager {
       String prefix = conventionalBindings[i];
       if (prefixMap.get(prefix) == null) {
         String ns = conventionalBindings[i + 1];
-        Boolean defaultOK = requiredNamespaces.get(ns);
-        if (defaultOK != null && (prefix.length() > 0 || defaultOK)) {
+        Boolean defaultOK = (Boolean)requiredNamespaces.get(ns);
+        if (defaultOK != null && (prefix.length() > 0 || defaultOK.booleanValue())) {
           prefixMap.put(prefix, ns);
           requiredNamespaces.remove(ns);
           if (prefix.length() > 0)
@@ -209,11 +212,11 @@ class NamespaceManager {
         }
       }
     }
-    Iterator<String> iter = requiredNamespaces.keySet().iterator();
+    Iterator iter = requiredNamespaces.keySet().iterator();
     for (int i = 1; iter.hasNext(); i++) {
       String prefix = "ns" + Integer.toString(i);
       if (prefixMap.get(prefix) == null) {
-        String ns = iter.next();
+        Object ns = iter.next();
         prefixMap.put(prefix, ns);
         nsMap.put(ns, prefix);
       }

@@ -3,6 +3,7 @@ package com.thaiopensource.relaxng.output;
 import com.thaiopensource.xml.util.EncodingMap;
 import com.thaiopensource.xml.out.CharRepertoire;
 
+import java.io.Writer;
 import java.io.IOException;
 import java.io.File;
 import java.io.OutputStreamWriter;
@@ -19,7 +20,7 @@ public class LocalOutputDirectory implements OutputDirectory {
   private boolean alwaysUseDefaultEncoding;
   private final int lineLength;
   // maps URIs to filenames
-  private final Map<String, String> uriMap = new HashMap<String, String>();
+  private final Map uriMap = new HashMap();
   private final String mainInputExtension;
   private int indent;
 
@@ -58,7 +59,7 @@ public class LocalOutputDirectory implements OutputDirectory {
   }
 
   private String mapFilename(String sourceUri) {
-    String filename = uriMap.get(sourceUri);
+    String filename = (String)uriMap.get(sourceUri);
     if (filename == null) {
       filename = chooseFilename(sourceUri);
       uriMap.put(sourceUri, filename);

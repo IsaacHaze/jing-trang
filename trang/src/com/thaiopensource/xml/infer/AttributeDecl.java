@@ -1,6 +1,6 @@
 package com.thaiopensource.xml.infer;
 
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 
 public class AttributeDecl {
   private final Name datatype;

@@ -22,7 +22,7 @@ public class WildcardElement extends Particle {
     return super.hashCode() ^ wildcard.hashCode();
   }
 
-  public <T> T accept(ParticleVisitor<T> visitor) {
+  public Object accept(ParticleVisitor visitor) {
     return visitor.visitWildcardElement(this);
   }
 }

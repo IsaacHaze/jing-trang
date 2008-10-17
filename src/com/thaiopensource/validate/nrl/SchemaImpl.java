@@ -14,7 +14,6 @@ import com.thaiopensource.validate.OptionArgumentException;
 import com.thaiopensource.validate.OptionArgumentPresenceException;
 import com.thaiopensource.validate.AbstractSchema;
 import com.thaiopensource.validate.SchemaReader;
-import com.thaiopensource.validate.prop.wrap.WrapProperty;
 import com.thaiopensource.validate.auto.SchemaFuture;
 import com.thaiopensource.xml.sax.XmlBaseHandler;
 import com.thaiopensource.xml.sax.DelegatingContentHandler;
@@ -123,8 +122,8 @@ class SchemaImpl extends AbstractSchema {
         throw new IncorrectSchemaException();
       Hashset openModes = new Hashset();
       Hashset checkedModes = new Hashset();
-      for (Enumeration e = modeMap.keys(); e.hasMoreElements();) {
-        String modeName = (String)e.nextElement();
+      for (Enumeration enum = modeMap.keys(); enum.hasMoreElements();) {
+        String modeName = (String)enum.nextElement();
         Mode mode = (Mode)modeMap.get(modeName);
         if (!mode.isDefined())
           error("undefined_mode", modeName, mode.getWhereUsed());
@@ -313,8 +312,8 @@ class SchemaImpl extends AbstractSchema {
                                            requestedProperties,
                                            isAttributesSchema);
       PropertyMap actualProperties = schema.getProperties();
-      for (Enumeration e = mustSupportOptions.elements(); e.hasMoreElements();) {
-        MustSupportOption mso = (MustSupportOption)e.nextElement();
+      for (Enumeration enum = mustSupportOptions.elements(); enum.hasMoreElements();) {
+        MustSupportOption mso = (MustSupportOption)enum.nextElement();
         Object actualValue = actualProperties.get(mso.pid);
         if (actualValue == null)
           error("unsupported_option", mso.name, mso.locator);
@@ -508,7 +507,7 @@ class SchemaImpl extends AbstractSchema {
 
   SchemaImpl(PropertyMap properties) {
     super(properties);
-    this.attributesSchema = properties.contains(WrapProperty.ATTRIBUTES);
+    this.attributesSchema = properties.contains(NrlProperty.ATTRIBUTES_SCHEMA);
     makeBuiltinMode("#allow", AllowAction.class);
     makeBuiltinMode("#attach", AttachAction.class);
     makeBuiltinMode("#unwrap", UnwrapAction.class);

@@ -7,29 +7,29 @@ import com.thaiopensource.relaxng.edit.CompositePattern;
 import com.thaiopensource.relaxng.edit.DefineComponent;
 import com.thaiopensource.relaxng.edit.DivComponent;
 import com.thaiopensource.relaxng.edit.ElementPattern;
-import com.thaiopensource.relaxng.edit.IncludeComponent;
 import com.thaiopensource.relaxng.edit.NameNameClass;
 import com.thaiopensource.relaxng.edit.UnaryPattern;
+import com.thaiopensource.relaxng.edit.IncludeComponent;
 import com.thaiopensource.relaxng.edit.ValuePattern;
-import com.thaiopensource.util.VoidValue;
 import com.thaiopensource.relaxng.parse.Context;
-import com.thaiopensource.xml.util.Naming;
 import com.thaiopensource.xml.util.WellKnownNamespaces;
+import com.thaiopensource.xml.util.Naming;
 
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Enumeration;
 
 public class PrefixManager implements SourceUriGenerator {
 
-  private final Map<String, String> prefixMap = new HashMap<String, String>();
-  private final Set<String> usedPrefixes = new HashSet<String>();
+  private final Map prefixMap = new HashMap();
+  private final Set usedPrefixes = new HashSet();
   /**
    * Set of prefixes that cannot be used for schema namespace.
    */
-  private final Set<String> reservedPrefixes = new HashSet<String>();
+  private final Set reservedPrefixes = new HashSet();
   private int nextGenIndex = 1;
   static private final String[] xsdPrefixes  = { "xs", "xsd" };
   static private final int MAX_PREFIX_LENGTH = 10;
@@ -41,7 +41,7 @@ public class PrefixManager implements SourceUriGenerator {
   class PrefixSelector extends AbstractVisitor {
     private final SchemaInfo si;
     private String inheritedNamespace;
-    private final Map<String, Map<String, PrefixUsage>> namespacePrefixUsageMap = new HashMap<String, Map<String, PrefixUsage>>();
+    private final Map namespacePrefixUsageMap = new HashMap();
 
     PrefixSelector(SchemaInfo si) {
       this.si = si;
@@ -49,45 +49,46 @@ public class PrefixManager implements SourceUriGenerator {
       si.getGrammar().componentsAccept(this);
       Context context = si.getGrammar().getContext();
       if (context != null) {
-        for (Enumeration e = context.prefixes(); e.hasMoreElements();) {
-          String prefix = (String)e.nextElement();
+        for (Enumeration enum = context.prefixes(); enum.hasMoreElements();) {
+          String prefix = (String)enum.nextElement();
           if (!prefix.equals(""))
             notePrefix(prefix, resolveNamespace(context.resolveNamespacePrefix(prefix)));
         }
       }
     }
 
-    public VoidValue visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       p.getNameClass().accept(this);
       p.getChild().accept(this);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitAttribute(AttributePattern p) {
+    public Object visitAttribute(AttributePattern p) {
       return p.getNameClass().accept(this);
     }
 
-    public VoidValue visitChoice(ChoiceNameClass nc) {
+    public Object visitChoice(ChoiceNameClass nc) {
       nc.childrenAccept(this);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitName(NameNameClass nc) {
+    public Object visitName(NameNameClass nc) {
       notePrefix(nc.getPrefix(), resolveNamespace(nc.getNamespaceUri()));
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitValue(ValuePattern p) {
-      for (Map.Entry<String, String> entry : p.getPrefixMap().entrySet()) {
-        String prefix = entry.getKey();
+    public Object visitValue(ValuePattern p) {
+      for (Iterator iter = p.getPrefixMap().entrySet().iterator(); iter.hasNext();) {
+        Map.Entry entry = (Map.Entry)iter.next();
+        String prefix = (String)entry.getKey();
         if (prefix != null && !prefix.equals("")) {
-          String ns = resolveNamespace(entry.getValue());
+          String ns = resolveNamespace((String)entry.getValue());
           notePrefix(prefix, ns);
           if (!ns.equals(WellKnownNamespaces.XML_SCHEMA))
             reservedPrefixes.add(prefix);
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
 
     private String resolveNamespace(String ns) {
@@ -97,12 +98,12 @@ public class PrefixManager implements SourceUriGenerator {
     private void notePrefix(String prefix, String ns) {
       if (prefix == null || ns == null || ns.equals(""))
         return;
-      Map<String, PrefixUsage> prefixUsageMap = namespacePrefixUsageMap.get(ns);
+      Map prefixUsageMap = (Map)namespacePrefixUsageMap.get(ns);
       if (prefixUsageMap == null) {
-        prefixUsageMap = new HashMap<String, PrefixUsage>();
+        prefixUsageMap = new HashMap();
         namespacePrefixUsageMap.put(ns, prefixUsageMap);
       }
-      PrefixUsage prefixUsage = prefixUsageMap.get(prefix);
+      PrefixUsage prefixUsage = (PrefixUsage)prefixUsageMap.get(prefix);
       if (prefixUsage == null) {
         prefixUsage = new PrefixUsage();
         prefixUsageMap.put(prefix, prefixUsage);
@@ -110,48 +111,50 @@ public class PrefixManager implements SourceUriGenerator {
       prefixUsage.count++;
     }
 
-    public VoidValue visitComposite(CompositePattern p) {
+    public Object visitComposite(CompositePattern p) {
       p.childrenAccept(this);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitUnary(UnaryPattern p) {
+    public Object visitUnary(UnaryPattern p) {
       return p.getChild().accept(this);
     }
 
-    public VoidValue visitDefine(DefineComponent c) {
+    public Object visitDefine(DefineComponent c) {
       c.getBody().accept(this);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitDiv(DivComponent c) {
+    public Object visitDiv(DivComponent c) {
       c.componentsAccept(this);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitInclude(IncludeComponent c) {
+    public Object visitInclude(IncludeComponent c) {
       String saveInheritedNamespace = inheritedNamespace;
       inheritedNamespace = c.getNs();
       si.getSchema(c.getHref()).componentsAccept(this);
       inheritedNamespace = saveInheritedNamespace;
-      return VoidValue.VOID;
+      return null;
     }
 
     void assignPrefixes() {
-      for (Map.Entry<String, Map<String, PrefixUsage>> entry : namespacePrefixUsageMap.entrySet()) {
-        String ns = entry.getKey();
+      for (Iterator iter = namespacePrefixUsageMap.entrySet().iterator(); iter.hasNext();) {
+        Map.Entry entry = (Map.Entry)iter.next();
+        String ns = (String)entry.getKey();
         if (!ns.equals("") && !ns.equals(WellKnownNamespaces.XML)) {
-          Map<String, PrefixUsage> prefixUsageMap = entry.getValue();
+          Map prefixUsageMap = (Map)entry.getValue();
           if (prefixUsageMap != null) {
-            Map.Entry<String, PrefixUsage> best = null;
-            for (Map.Entry<String, PrefixUsage> tem : prefixUsageMap.entrySet()) {
+            Map.Entry best = null;
+            for (Iterator entryIter = prefixUsageMap.entrySet().iterator(); entryIter.hasNext();) {
+              Map.Entry tem = (Map.Entry)entryIter.next();
               if ((best == null
-                   || (tem.getValue()).count > (best.getValue()).count)
-                  && prefixOk(tem.getKey(), ns))
+                   || ((PrefixUsage)tem.getValue()).count > ((PrefixUsage)best.getValue()).count)
+                  && prefixOk((String)tem.getKey(), ns))
                 best = tem;
             }
             if (best != null)
-              usePrefix(best.getKey(), ns);
+              usePrefix((String)best.getKey(), ns);
           }
         }
       }
@@ -164,7 +167,7 @@ public class PrefixManager implements SourceUriGenerator {
   }
 
   String getPrefix(String namespace) {
-    String prefix = prefixMap.get(namespace);
+    String prefix = (String)prefixMap.get(namespace);
     if (prefix == null && namespace.equals(WellKnownNamespaces.XML_SCHEMA)) {
       for (int i = 0; i < xsdPrefixes.length; i++)
         if (tryUsePrefix(xsdPrefixes[i], namespace))

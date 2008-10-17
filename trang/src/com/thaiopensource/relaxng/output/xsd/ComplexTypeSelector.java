@@ -26,7 +26,6 @@ import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeList;
 import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeRef;
 import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeUnion;
 import com.thaiopensource.relaxng.output.xsd.basic.WildcardElement;
-import com.thaiopensource.util.VoidValue;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,8 +35,8 @@ import java.util.Set;
 
 class ComplexTypeSelector extends SchemaWalker {
   static class Refs {
-    final Set<Element> referencingElements = new HashSet<Element>();
-    final Set<String> referencingDefinitions = new HashSet<String>();
+    final Set referencingElements = new HashSet();
+    final Set referencingDefinitions = new HashSet();
     boolean nonTypeReference = false;
     boolean desirable = false;
   }
@@ -50,72 +49,72 @@ class ComplexTypeSelector extends SchemaWalker {
     }
   }
 
-  private final Map<String, Refs> groupMap = new HashMap<String, Refs>();
-  private final Map<String, Refs> attributeGroupMap = new HashMap<String, Refs>();
-  private final Map<String, Refs> simpleTypeMap = new HashMap<String, Refs>();
+  private final Map groupMap = new HashMap();
+  private final Map attributeGroupMap = new HashMap();
+  private final Map simpleTypeMap = new HashMap();
   private String parentDefinition;
   private Element parentElement;
   private int nonTypeReference = 0;
   private int undesirable = 0;
-  private final Map<String, NamedComplexType> complexTypeMap = new HashMap<String, NamedComplexType>();
+  private final Map complexTypeMap = new HashMap();
   private final Schema schema;
   private final Transformer transformer;
-  private final ParticleVisitor<String> baseFinder = new BaseFinder();
+  private final ParticleVisitor baseFinder = new BaseFinder();
 
   class Transformer extends SchemaTransformer {
     Transformer(Schema schema) {
       super(schema);
     }
 
-    public AttributeUse visitAttributeGroupRef(AttributeGroupRef a) {
+    public Object visitAttributeGroupRef(AttributeGroupRef a) {
       if (complexTypeMap.get(a.getName()) != null)
         return AttributeGroup.EMPTY;
       return a;
     }
 
-    public Particle visitGroupRef(GroupRef p) {
+    public Object visitGroupRef(GroupRef p) {
       if (complexTypeMap.get(p.getName()) != null)
         return null;
       return p;
     }
 
-    public Particle visitElement(Element p) {
+    public Object visitElement(Element p) {
       return p;
     }
 
-    public AttributeUse visitAttribute(Attribute a) {
+    public Object visitAttribute(Attribute a) {
       return a;
     }
   }
 
-  class BaseFinder implements ParticleVisitor<String> {
-    public String visitGroupRef(GroupRef p) {
+  class BaseFinder implements ParticleVisitor {
+    public Object visitGroupRef(GroupRef p) {
       if (complexTypeMap.get(p.getName()) != null)
         return p.getName();
       return null;
     }
 
-    public String visitSequence(ParticleSequence p) {
-      return p.getChildren().get(0).accept(this);
+    public Object visitSequence(ParticleSequence p) {
+      return ((Particle)p.getChildren().get(0)).accept(this);
     }
 
-    public String visitElement(Element p) {
+    public Object visitElement(Element p) {
       return null;
     }
 
-    public String visitWildcardElement(WildcardElement p) {
+    public Object visitWildcardElement(WildcardElement p) {
       return null;
     }
 
-    public String visitRepeat(ParticleRepeat p) {
+    public Object visitRepeat(ParticleRepeat p) {
       return null;
     }
 
-    public String visitChoice(ParticleChoice p) {
+    public Object visitChoice(ParticleChoice p) {
       return null;
     }
 
-    public String visitAll(ParticleAll p) {
+    public Object visitAll(ParticleAll p) {
       return null;
     }
   }
@@ -152,7 +151,7 @@ class ComplexTypeSelector extends SchemaWalker {
     undesirable--;
   }
 
-  public VoidValue visitElement(Element p) {
+  public Object visitElement(Element p) {
     Element oldParentElement = parentElement;
     int oldNonTypeReference = nonTypeReference;
     int oldExtensionReference = undesirable;
@@ -163,94 +162,94 @@ class ComplexTypeSelector extends SchemaWalker {
     undesirable = oldExtensionReference;
     nonTypeReference = oldNonTypeReference;
     parentElement = oldParentElement;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitSequence(ParticleSequence p) {
-    Iterator<Particle> iter = p.getChildren().iterator();
+  public Object visitSequence(ParticleSequence p) {
+    Iterator iter = p.getChildren().iterator();
     undesirable++;
-    (iter.next()).accept(this);
+    ((Particle)iter.next()).accept(this);
     undesirable--;
     nonTypeReference++;
     while (iter.hasNext())
-      (iter.next()).accept(this);
+      ((Particle)iter.next()).accept(this);
     nonTypeReference--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitChoice(ParticleChoice p) {
+  public Object visitChoice(ParticleChoice p) {
     nonTypeReference++;
     super.visitChoice(p);
     nonTypeReference--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitAll(ParticleAll p) {
+  public Object visitAll(ParticleAll p) {
     nonTypeReference++;
     super.visitAll(p);
     nonTypeReference--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitRepeat(ParticleRepeat p) {
+  public Object visitRepeat(ParticleRepeat p) {
     nonTypeReference++;
     super.visitRepeat(p);
     nonTypeReference--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitAttribute(Attribute a) {
+  public Object visitAttribute(Attribute a) {
     nonTypeReference++;
     SimpleType t = a.getType();
     if (t != null)
       t.accept(this);
     nonTypeReference--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitComplexContent(ComplexTypeComplexContent t) {
+  public Object visitComplexContent(ComplexTypeComplexContent t) {
     super.visitComplexContent(t);
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitSimpleContent(ComplexTypeSimpleContent t) {
+  public Object visitSimpleContent(ComplexTypeSimpleContent t) {
     super.visitSimpleContent(t);
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitUnion(SimpleTypeUnion t) {
+  public Object visitUnion(SimpleTypeUnion t) {
     nonTypeReference++;
     super.visitUnion(t);
     nonTypeReference--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitList(SimpleTypeList t) {
+  public Object visitList(SimpleTypeList t) {
     nonTypeReference++;
     super.visitList(t);
     nonTypeReference--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitGroupRef(GroupRef p) {
+  public Object visitGroupRef(GroupRef p) {
     noteRef(groupMap, p.getName());
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitAttributeGroupRef(AttributeGroupRef a) {
+  public Object visitAttributeGroupRef(AttributeGroupRef a) {
     noteRef(attributeGroupMap, a.getName());
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitRef(SimpleTypeRef t) {
+  public Object visitRef(SimpleTypeRef t) {
     // Don't make it a complex type unless there are attributes
     undesirable++;
     noteRef(simpleTypeMap, t.getName());
     undesirable--;
-    return VoidValue.VOID;
+    return null;
   }
 
-  private void noteRef(Map<String, Refs> map, String name) {
+  private void noteRef(Map map, String name) {
     Refs refs = lookupRefs(map, name);
     if (nonTypeReference > 0)
       refs.nonTypeReference = true;
@@ -262,8 +261,8 @@ class ComplexTypeSelector extends SchemaWalker {
       refs.desirable = true;
   }
 
-  static private Refs lookupRefs(Map<String, Refs> map, String name) {
-    Refs refs = map.get(name);
+  static private Refs lookupRefs(Map map, String name) {
+    Refs refs = (Refs)map.get(name);
     if (refs == null) {
       refs = new Refs();
       map.put(name, refs);
@@ -271,14 +270,15 @@ class ComplexTypeSelector extends SchemaWalker {
     return refs;
   }
 
-  private void chooseComplexTypes(Map<String, Refs> definitionMap) {
+  private void chooseComplexTypes(Map definitionMap) {
     for (;;) {
       boolean foundOne = false;
-      for (Map.Entry<String, Refs> entry : definitionMap.entrySet()) {
-        String name = entry.getKey();
+      for (Iterator iter = definitionMap.entrySet().iterator(); iter.hasNext();) {
+        Map.Entry entry = (Map.Entry)iter.next();
+        String name = (String)entry.getKey();
         if (createComplexType(name,
-                              entry.getValue(),
-                              attributeGroupMap.get(name)))
+                              (Refs)entry.getValue(),
+                              (Refs)attributeGroupMap.get(name)))
           foundOne = true;
       }
       if (!foundOne)
@@ -300,8 +300,8 @@ class ComplexTypeSelector extends SchemaWalker {
       return false;
     boolean mixed = false;
     boolean hadReference = false;
-    for (Element elem : childRefs.referencingElements) {
-      boolean m = elem.getComplexType().isMixed();
+    for (Iterator iter = childRefs.referencingElements.iterator(); iter.hasNext();) {
+      boolean m = ((Element)iter.next()).getComplexType().isMixed();
       if (m != mixed) {
         if (hadReference)
           return false;
@@ -309,8 +309,8 @@ class ComplexTypeSelector extends SchemaWalker {
       }
       hadReference = true;
     }
-    for (String def : childRefs.referencingDefinitions) {
-      NamedComplexType ct = complexTypeMap.get(def);
+    for (Iterator iter = childRefs.referencingDefinitions.iterator(); iter.hasNext();) {
+      NamedComplexType ct = (NamedComplexType)complexTypeMap.get(iter.next());
       if (ct == null)
         return false;
       if (ct.mixed != mixed) {
@@ -328,17 +328,17 @@ class ComplexTypeSelector extends SchemaWalker {
   private Particle transformParticle(Particle particle) {
     if (particle == null)
       return particle;
-    return particle.accept(transformer);
+    return (Particle)particle.accept(transformer);
   }
 
   private AttributeUse transformAttributeUses(AttributeUse atts) {
-    return atts.accept(transformer);
+    return (AttributeUse)atts.accept(transformer);
   }
 
   String particleBase(Particle particle) {
     if (particle == null)
       return null;
-    return particle.accept(baseFinder);
+    return (String)particle.accept(baseFinder);
   }
 
   ComplexTypeComplexContentExtension transformComplexContent(ComplexTypeComplexContent ct) {
@@ -358,7 +358,7 @@ class ComplexTypeSelector extends SchemaWalker {
     SimpleType st = ct.getSimpleType();
     if (st instanceof SimpleTypeRef) {
       String name = ((SimpleTypeRef)st).getName();
-      NamedComplexType nct = complexTypeMap.get(name);
+      NamedComplexType nct = (NamedComplexType)complexTypeMap.get(name);
       if (nct != null)
         return new ComplexTypeSimpleContentExtension(transformAttributeUses(ct.getAttributeUses()), null, name);
     }
@@ -366,7 +366,7 @@ class ComplexTypeSelector extends SchemaWalker {
   }
 
   ComplexTypeComplexContentExtension createComplexTypeForGroup(String name, NamespaceManager nsm) {
-    NamedComplexType ct = complexTypeMap.get(name);
+    NamedComplexType ct = (NamedComplexType)complexTypeMap.get(name);
     if (ct == null)
       return null;
     AttributeGroupDefinition attDef = schema.getAttributeGroup(name);
@@ -383,7 +383,7 @@ class ComplexTypeSelector extends SchemaWalker {
   }
 
   ComplexTypeSimpleContentExtension createComplexTypeForSimpleType(String name) {
-    NamedComplexType ct = complexTypeMap.get(name);
+    NamedComplexType ct = (NamedComplexType)complexTypeMap.get(name);
     if (ct == null)
       return null;
     AttributeGroupDefinition attDef = schema.getAttributeGroup(name);

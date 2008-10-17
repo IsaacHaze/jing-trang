@@ -2,10 +2,10 @@ package com.thaiopensource.validate.schematron;
 
 import com.icl.saxon.TransformerFactoryImpl;
 
-import javax.xml.transform.sax.SAXTransformerFactory;
+import javax.xml.transform.TransformerFactory;
 
 public class SaxonSchemaReaderFactory extends SchematronSchemaReaderFactory {
-  public SAXTransformerFactory newTransformerFactory() {
+  public TransformerFactory newTransformerFactory() {
     return new TransformerFactoryImpl();
   }
 }

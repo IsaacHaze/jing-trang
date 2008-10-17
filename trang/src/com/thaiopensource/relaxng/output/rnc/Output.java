@@ -1,71 +1,16 @@
 package com.thaiopensource.relaxng.output.rnc;
 
-import com.thaiopensource.relaxng.edit.Annotated;
-import com.thaiopensource.relaxng.edit.AnnotationChild;
-import com.thaiopensource.relaxng.edit.AnnotationChildVisitor;
-import com.thaiopensource.relaxng.edit.AnyNameNameClass;
-import com.thaiopensource.relaxng.edit.AttributeAnnotation;
-import com.thaiopensource.relaxng.edit.AttributePattern;
-import com.thaiopensource.relaxng.edit.ChoiceNameClass;
-import com.thaiopensource.relaxng.edit.ChoicePattern;
-import com.thaiopensource.relaxng.edit.Combine;
-import com.thaiopensource.relaxng.edit.Comment;
-import com.thaiopensource.relaxng.edit.Component;
-import com.thaiopensource.relaxng.edit.ComponentVisitor;
-import com.thaiopensource.relaxng.edit.CompositePattern;
-import com.thaiopensource.relaxng.edit.Container;
-import com.thaiopensource.relaxng.edit.DataPattern;
-import com.thaiopensource.relaxng.edit.DefineComponent;
-import com.thaiopensource.relaxng.edit.DivComponent;
-import com.thaiopensource.relaxng.edit.ElementAnnotation;
-import com.thaiopensource.relaxng.edit.ElementPattern;
-import com.thaiopensource.relaxng.edit.EmptyPattern;
-import com.thaiopensource.relaxng.edit.ExternalRefPattern;
-import com.thaiopensource.relaxng.edit.GrammarPattern;
-import com.thaiopensource.relaxng.edit.GroupPattern;
-import com.thaiopensource.relaxng.edit.IncludeComponent;
-import com.thaiopensource.relaxng.edit.InterleavePattern;
-import com.thaiopensource.relaxng.edit.ListPattern;
-import com.thaiopensource.relaxng.edit.MixedPattern;
-import com.thaiopensource.relaxng.edit.NameClass;
-import com.thaiopensource.relaxng.edit.NameClassVisitor;
-import com.thaiopensource.relaxng.edit.NameClassedPattern;
-import com.thaiopensource.relaxng.edit.NameNameClass;
-import com.thaiopensource.relaxng.edit.NotAllowedPattern;
-import com.thaiopensource.relaxng.edit.NsNameNameClass;
-import com.thaiopensource.relaxng.edit.VoidVisitor;
-import com.thaiopensource.relaxng.edit.OneOrMorePattern;
-import com.thaiopensource.relaxng.edit.OptionalPattern;
-import com.thaiopensource.relaxng.edit.Param;
-import com.thaiopensource.relaxng.edit.ParentRefPattern;
-import com.thaiopensource.relaxng.edit.Pattern;
-import com.thaiopensource.relaxng.edit.PatternVisitor;
-import com.thaiopensource.relaxng.edit.RefPattern;
-import com.thaiopensource.relaxng.edit.SourceLocation;
-import com.thaiopensource.relaxng.edit.TextAnnotation;
-import com.thaiopensource.relaxng.edit.TextPattern;
-import com.thaiopensource.relaxng.edit.UnaryPattern;
-import com.thaiopensource.relaxng.edit.ValuePattern;
-import com.thaiopensource.util.VoidValue;
-import com.thaiopensource.relaxng.edit.ZeroOrMorePattern;
+import com.thaiopensource.relaxng.edit.*;
 import com.thaiopensource.relaxng.output.OutputDirectory;
 import com.thaiopensource.relaxng.output.common.ErrorReporter;
-import com.thaiopensource.relaxng.parse.Context;
 import com.thaiopensource.relaxng.parse.SchemaBuilder;
-import com.thaiopensource.util.Utf16;
-import com.thaiopensource.xml.out.CharRepertoire;
+import com.thaiopensource.relaxng.parse.Context;
 import com.thaiopensource.xml.util.WellKnownNamespaces;
+import com.thaiopensource.xml.out.CharRepertoire;
+import com.thaiopensource.util.Utf16;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 class Output {
   private final Prettyprinter pp;
@@ -75,15 +20,15 @@ class Output {
   private final OutputDirectory od;
   private final ErrorReporter er;
   private final NamespaceManager.NamespaceBindings nsb;
-  private final Map<String, String> datatypeLibraryMap = new HashMap<String, String>();
+  private final Map datatypeLibraryMap = new HashMap();
   private final ComplexityCache complexityCache = new ComplexityCache();
-  private final NameClassVisitor<VoidValue> nameClassOutput = new NameClassOutput(true);
-  private final NameClassVisitor<VoidValue> noParenNameClassOutput = new NameClassOutput(false);
-  private final PatternVisitor<VoidValue> noParenPatternOutput = new PatternOutput(false);
-  private final PatternVisitor<VoidValue> patternOutput = new PatternOutput(true);
-  private final ComponentVisitor<VoidValue> componentOutput = new ComponentOutput();
-  private final AnnotationChildVisitor<VoidValue> annotationChildOutput = new AnnotationChildOutput();
-  private final AnnotationChildVisitor<VoidValue> followingAnnotationChildOutput = new FollowingAnnotationChildOutput();
+  private final NameClassVisitor nameClassOutput = new NameClassOutput(true);
+  private final NameClassVisitor noParenNameClassOutput = new NameClassOutput(false);
+  private final PatternVisitor noParenPatternOutput = new PatternOutput(false);
+  private final PatternVisitor patternOutput = new PatternOutput(true);
+  private final ComponentVisitor componentOutput = new ComponentOutput();
+  private final AnnotationChildVisitor annotationChildOutput = new AnnotationChildOutput();
+  private final AnnotationChildVisitor followingAnnotationChildOutput = new FollowingAnnotationChildOutput();
   private boolean isAttributeNameClass;
   private final StringBuffer encodeBuf = new StringBuffer();
 
@@ -94,7 +39,7 @@ class Output {
     "parent", "start", "string", "text", "token"
   };
 
-  static private final Set<String> keywordSet = new HashSet<String>();
+  static private final Set keywordSet = new HashSet();
 
   static {
     for (int i = 0; i < keywords.length; i++)
@@ -141,15 +86,15 @@ class Output {
     outputNamespaceDeclarations();
     outputDatatypeLibraryDeclarations(p);
     if (implicitGrammar) {
-      for (AnnotationChild annotationChild : p.getChildElementAnnotations()) {
-        annotationChild.accept(annotationChildOutput);
+      for (Iterator iter = p.getChildElementAnnotations().iterator(); iter.hasNext();) {
+        ((AnnotationChild)iter.next()).accept(annotationChildOutput);
         pp.hardNewline();
       }
       innerBody(((GrammarPattern)p).getComponents());
       // This deals with trailing comments
-      for (AnnotationChild annotationChild : p.getFollowingElementAnnotations()) {
+      for (Iterator iter = p.getFollowingElementAnnotations().iterator(); iter.hasNext();) {
         pp.hardNewline();
-        annotationChild.accept(annotationChildOutput);
+        ((AnnotationChild)iter.next()).accept(annotationChildOutput);
       }
     }
     else
@@ -159,7 +104,7 @@ class Output {
   }
 
   private void outputNamespaceDeclarations() {
-    List<String> prefixes = new Vector<String>();
+    List prefixes = new Vector();
     prefixes.addAll(nsb.getPrefixes());
     Collections.sort(prefixes);
 
@@ -169,7 +114,8 @@ class Output {
     String defaultNamespace = nsb.getNamespaceUri("");
     if (defaultNamespace != null && !defaultNamespace.equals(SchemaBuilder.INHERIT_NS))
       defaultPrefix = nsb.getNonEmptyPrefix(defaultNamespace);
-    for (String prefix : prefixes) {
+    for (Iterator iter = prefixes.iterator(); iter.hasNext();) {
+      String prefix = (String)iter.next();
       String ns = nsb.getNamespaceUri(prefix);
       if (prefix.length() == 0) {
         if (defaultPrefix == null && !ns.equals(SchemaBuilder.INHERIT_NS)) {
@@ -212,7 +158,7 @@ class Output {
 
   private void outputDatatypeLibraryDeclarations(Pattern p) {
     datatypeLibraryMap.put(WellKnownNamespaces.XML_SCHEMA_DATATYPES, "xsd");
-    List<String> datatypeLibraries = new Vector<String>();
+    List datatypeLibraries = new Vector();
     datatypeLibraries.addAll(DatatypeLibraryVisitor.findDatatypeLibraries(p));
     if (datatypeLibraries.isEmpty())
       return;
@@ -221,7 +167,7 @@ class Output {
       String prefix = "d";
       if (len > 1)
         prefix += Integer.toString(i + 1);
-      String uri = datatypeLibraries.get(i);
+      String uri = (String)datatypeLibraries.get(i);
       datatypeLibraryMap.put(uri, prefix);
       pp.startGroup();
       pp.text("datatypes ");
@@ -237,11 +183,11 @@ class Output {
     pp.hardNewline();
   }
 
-  private static class TextAnnotationMerger extends VoidVisitor {
-    public void voidVisitElement(ElementAnnotation ea) {
+  static class TextAnnotationMerger extends NullVisitor {
+    public void nullVisitElement(ElementAnnotation ea) {
       TextAnnotation prevText = null;
-      for (Iterator<AnnotationChild> iter = ea.getChildren().iterator(); iter.hasNext();) {
-        AnnotationChild child = iter.next();
+      for (Iterator iter = ea.getChildren().iterator(); iter.hasNext();) {
+        AnnotationChild child = (AnnotationChild)iter.next();
         if (child instanceof TextAnnotation) {
           if (prevText == null)
             prevText = (TextAnnotation)child;
@@ -258,17 +204,17 @@ class Output {
     }
   }
 
-  static class DatatypeLibraryVisitor extends VoidVisitor {
-    private final Set<String> datatypeLibraries = new HashSet<String>();
+  static class DatatypeLibraryVisitor extends NullVisitor {
+    private final Set datatypeLibraries = new HashSet();
 
-    public void voidVisitValue(ValuePattern p) {
+    public void nullVisitValue(ValuePattern p) {
       noteDatatypeLibrary(p.getDatatypeLibrary());
-      super.voidVisitValue(p);
+      super.nullVisitValue(p);
     }
 
-    public void voidVisitData(DataPattern p) {
+    public void nullVisitData(DataPattern p) {
       noteDatatypeLibrary(p.getDatatypeLibrary());
-      super.voidVisitData(p);
+      super.nullVisitData(p);
     }
 
     private void noteDatatypeLibrary(String uri) {
@@ -276,39 +222,39 @@ class Output {
         datatypeLibraries.add(uri);
     }
 
-    static Set<String> findDatatypeLibraries(Pattern p) {
+    static Set findDatatypeLibraries(Pattern p) {
       DatatypeLibraryVisitor dlv = new DatatypeLibraryVisitor();
       p.accept(dlv);
       return dlv.datatypeLibraries;
     }
   }
 
-  static class NamespaceVisitor extends VoidVisitor {
+  static class NamespaceVisitor extends NullVisitor {
     private final NamespaceManager nsm = new NamespaceManager();
     private boolean isAttribute;
 
-    public void voidVisitInclude(IncludeComponent c) {
-      super.voidVisitInclude(c);
+    public void nullVisitInclude(IncludeComponent c) {
+      super.nullVisitInclude(c);
       nsm.requireNamespace(c.getNs(), true);
     }
 
-    public void voidVisitExternalRef(ExternalRefPattern p) {
-      super.voidVisitExternalRef(p);
+    public void nullVisitExternalRef(ExternalRefPattern p) {
+      super.nullVisitExternalRef(p);
       nsm.requireNamespace(p.getNs(), true);
     }
 
-    public void voidVisitElement(ElementPattern p) {
+    public void nullVisitElement(ElementPattern p) {
       isAttribute = false;
-      super.voidVisitElement(p);
+      super.nullVisitElement(p);
     }
 
-    public void voidVisitAttribute(AttributePattern p) {
+    public void nullVisitAttribute(AttributePattern p) {
       isAttribute = true;
-      super.voidVisitAttribute(p);
+      super.nullVisitAttribute(p);
     }
 
-    public void voidVisitName(NameNameClass nc) {
-      super.voidVisitName(nc);
+    public void nullVisitName(NameNameClass nc) {
+      super.nullVisitName(nc);
       if (!isAttribute || nc.getNamespaceUri().length() != 0)
         nsm.requireNamespace(nc.getNamespaceUri(), !isAttribute);
       if (nc.getPrefix() == null) {
@@ -319,20 +265,21 @@ class Output {
         nsm.preferBinding(nc.getPrefix(), nc.getNamespaceUri());
     }
 
-    public void voidVisitNsName(NsNameNameClass nc) {
-      super.voidVisitNsName(nc);
+    public void nullVisitNsName(NsNameNameClass nc) {
+      super.nullVisitNsName(nc);
       nsm.requireNamespace(nc.getNs(), false);
     }
 
-    public void voidVisitValue(ValuePattern p) {
-      super.voidVisitValue(p);
-      for (Map.Entry<String, String> entry : p.getPrefixMap().entrySet()) {
-        nsm.requireBinding(entry.getKey(), entry.getValue());
+    public void nullVisitValue(ValuePattern p) {
+      super.nullVisitValue(p);
+      for (Iterator iter = p.getPrefixMap().entrySet().iterator(); iter.hasNext();) {
+        Map.Entry entry = (Map.Entry)iter.next();
+        nsm.requireBinding((String)entry.getKey(), (String)entry.getValue());
       }
     }
 
-    public void voidVisitElement(ElementAnnotation ea) {
-      super.voidVisitElement(ea);
+    public void nullVisitElement(ElementAnnotation ea) {
+      super.nullVisitElement(ea);
       noteAnnotationBinding(ea.getPrefix(), ea.getNamespaceUri());
       noteContext(ea.getContext(), true);
     }
@@ -355,8 +302,8 @@ class Output {
       }
     }
 
-    public void voidVisitAttribute(AttributeAnnotation a) {
-      super.voidVisitAttribute(a);
+    public void nullVisitAttribute(AttributeAnnotation a) {
+      super.nullVisitAttribute(a);
       noteAnnotationBinding(a.getPrefix(), a.getNamespaceUri());
     }
 
@@ -367,16 +314,17 @@ class Output {
         nsm.preferBinding(prefix, ns);
     }
 
-    public void voidVisitAnnotated(Annotated p) {
+    public void nullVisitAnnotated(Annotated p) {
       p.leadingCommentsAccept(this);
       noteContext(p.getContext(), !p.getAttributeAnnotations().isEmpty());
       p.attributeAnnotationsAccept(this);
-      List<AnnotationChild> before = (p.mayContainText()
+      List before = (p.mayContainText()
                      ? p.getFollowingElementAnnotations()
                      : p.getChildElementAnnotations());
       // Avoid unnecessary prefix for documentation
       int state = 0;
-      for (AnnotationChild child : before) {
+      for (Iterator iter = before.iterator(); iter.hasNext();) {
+        AnnotationChild child = (AnnotationChild)iter.next();
         if (state < 2 && documentationString(child) != null)
           state = 1;
         else if (state != 1 || !(child instanceof Comment))
@@ -395,8 +343,8 @@ class Output {
     }
   }
 
-  private class ComponentOutput implements ComponentVisitor<VoidValue> {
-    public VoidValue visitDefine(DefineComponent c) {
+  class ComponentOutput implements ComponentVisitor {
+    public Object visitDefine(DefineComponent c) {
       startAnnotations(c);
       pp.startGroup();
       String name = c.getName();
@@ -419,18 +367,18 @@ class Output {
       pp.endNest();
       pp.endGroup();
       endAnnotations(c);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitDiv(DivComponent c) {
+    public Object visitDiv(DivComponent c) {
       startAnnotations(c);
       pp.text("div");
       body(c);
       endAnnotations(c);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitInclude(IncludeComponent c) {
+    public Object visitInclude(IncludeComponent c) {
       startAnnotations(c);
       pp.startGroup();
       pp.text("include ");
@@ -439,39 +387,39 @@ class Output {
       inherit(c.getNs());
       pp.endNest();
       pp.endGroup();
-      List<Component> components = c.getComponents();
+      List components = c.getComponents();
       if (!components.isEmpty())
         body(components);
       endAnnotations(c);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
-  class PatternOutput implements PatternVisitor<VoidValue> {
+  class PatternOutput implements PatternVisitor {
     private final boolean alwaysUseParens;
 
     PatternOutput(boolean alwaysUseParens) {
       this.alwaysUseParens = alwaysUseParens;
     }
 
-    public VoidValue visitGrammar(GrammarPattern p) {
+    public Object visitGrammar(GrammarPattern p) {
       startAnnotations(p);
       pp.text("grammar");
       body(p);
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       isAttributeNameClass = false;
       nameClassed(p, "element ");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitAttribute(AttributePattern p) {
+    public Object visitAttribute(AttributePattern p) {
       isAttributeNameClass = true;
       nameClassed(p, "attribute ");
-      return VoidValue.VOID;
+      return null;
     }
 
     private void nameClassed(NameClassedPattern p, String key) {
@@ -506,19 +454,19 @@ class Output {
         pp.endGroup();
     }
 
-    public VoidValue visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       postfix(p, "+");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       postfix(p, "*");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       postfix(p, "?");
-      return VoidValue.VOID;
+      return null;
     }
 
     private void postfix(UnaryPattern p, String op) {
@@ -537,22 +485,22 @@ class Output {
       endAnnotations(p);
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       startAnnotations(p);
       identifier(p.getName());
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitParentRef(ParentRefPattern p) {
+    public Object visitParentRef(ParentRefPattern p) {
       startAnnotations(p);
       pp.text("parent ");
       identifier(p.getName());
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitExternalRef(ExternalRefPattern p) {
+    public Object visitExternalRef(ExternalRefPattern p) {
       startAnnotations(p);
       pp.startGroup();
       pp.text("external ");
@@ -562,38 +510,38 @@ class Output {
       pp.endNest();
       pp.endGroup();
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitText(TextPattern p) {
+    public Object visitText(TextPattern p) {
       startAnnotations(p);
       pp.text("text");
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitEmpty(EmptyPattern p) {
+    public Object visitEmpty(EmptyPattern p) {
       startAnnotations(p);
       pp.text("empty");
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitNotAllowed(NotAllowedPattern p) {
+    public Object visitNotAllowed(NotAllowedPattern p) {
       startAnnotations(p);
       pp.text("notAllowed");
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitList(ListPattern p) {
+    public Object visitList(ListPattern p) {
       prefix(p, "list");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       prefix(p, "mixed");
-      return VoidValue.VOID;
+      return null;
     }
 
     private void prefix(UnaryPattern p, String key) {
@@ -603,19 +551,19 @@ class Output {
       endAnnotations(p);
     }
 
-    public VoidValue visitChoice(ChoicePattern p) {
+    public Object visitChoice(ChoicePattern p) {
       composite(p, "| ", false);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitInterleave(InterleavePattern p) {
+    public Object visitInterleave(InterleavePattern p) {
       composite(p, "& ", false);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitGroup(GroupPattern p) {
+    public Object visitGroup(GroupPattern p) {
       composite(p, ",", true);
-      return VoidValue.VOID;
+      return null;
     }
 
     void composite(CompositePattern p, String sep, boolean sepBeforeNewline) {
@@ -631,7 +579,7 @@ class Output {
       }
 
       boolean first = true;
-      for (Pattern child : p.getChildren()) {
+      for (Iterator iter = p.getChildren().iterator(); iter.hasNext();) {
         if (!first) {
           if (sepBeforeNewline)
             pp.text(sep);
@@ -644,7 +592,7 @@ class Output {
             pp.startNest(sep);
           }
         }
-        child.accept(patternOutput);
+        ((Pattern)iter.next()).accept(patternOutput);
         if (first)
           first = false;
         else if (!sepBeforeNewline)
@@ -659,23 +607,24 @@ class Output {
       endAnnotations(p);
     }
 
-    public VoidValue visitData(DataPattern p) {
+    public Object visitData(DataPattern p) {
       startAnnotations(p);
       String lib = p.getDatatypeLibrary();
       String qn;
       if (!lib.equals(""))
-        qn = datatypeLibraryMap.get(lib) + ":" + p.getType();
+        qn = (String)datatypeLibraryMap.get(lib) + ":" + p.getType();
       else
         qn = p.getType();
       qn = encode(qn);
       pp.text(qn);
-      List<Param> params = p.getParams();
+      List params = p.getParams();
       if (params.size() > 0) {
         pp.startGroup();
         pp.text(" {");
         pp.startNest(indent);
-        for (Param param : params) {
+        for (Iterator iter = params.iterator(); iter.hasNext();) {
           pp.softNewline(" ");
+          Param param = (Param)iter.next();
           startAnnotations(param);
           pp.startGroup();
           encodedText(param.getName());
@@ -716,13 +665,14 @@ class Output {
           pp.endGroup();
       }
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitValue(ValuePattern p) {
-      for (Map.Entry<String, String> entry : p.getPrefixMap().entrySet()) {
-        String prefix = entry.getKey();
-        String uri = entry.getValue();
+    public Object visitValue(ValuePattern p) {
+      for (Iterator iter = p.getPrefixMap().entrySet().iterator(); iter.hasNext();) {
+        Map.Entry entry = (Map.Entry)iter.next();
+        String prefix = (String)entry.getKey();
+        String uri = (String)entry.getValue();
         if (!uri.equals(nsb.getNamespaceUri(prefix))) {
           if (prefix.equals(""))
             er.error("value_inconsistent_default_binding", uri, p.getSourceLocation());
@@ -739,7 +689,7 @@ class Output {
           str = p.getType() + " ";
       }
       else
-        str = datatypeLibraryMap.get(lib) + ":" + p.getType() + " ";
+        str = (String)datatypeLibraryMap.get(lib) + ":" + p.getType() + " ";
       if (str != null) {
         String encoded = encode(str);
         pp.text(encoded);
@@ -750,19 +700,19 @@ class Output {
         pp.endNest();
       pp.endGroup();
       endAnnotations(p);
-      return VoidValue.VOID;
+      return null;
     }
 
   }
 
-  class NameClassOutput implements NameClassVisitor<VoidValue> {
+  class NameClassOutput implements NameClassVisitor {
     private final boolean alwaysUseParens;
 
     NameClassOutput(boolean alwaysUseParens) {
       this.alwaysUseParens = alwaysUseParens;
     }
 
-    public VoidValue visitAnyName(AnyNameNameClass nc) {
+    public Object visitAnyName(AnyNameNameClass nc) {
       NameClass e = nc.getExcept();
       if (e == null) {
         startAnnotations(nc);
@@ -779,10 +729,10 @@ class Output {
         pp.endNest();
       }
       endAnnotations(nc);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitNsName(NsNameNameClass nc) {
+    public Object visitNsName(NsNameNameClass nc) {
       NameClass e = nc.getExcept();
       String prefix = nsb.getNonEmptyPrefix(nc.getNs());
       if (e == null) {
@@ -803,17 +753,17 @@ class Output {
           pp.text(")");
       }
       endAnnotations(nc);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitName(NameNameClass nc) {
+    public Object visitName(NameNameClass nc) {
       startAnnotations(nc);
       qualifiedName(nc.getNamespaceUri(), nc.getPrefix(), nc.getLocalName(), isAttributeNameClass);
       endAnnotations(nc);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitChoice(ChoiceNameClass nc) {
+    public Object visitChoice(ChoiceNameClass nc) {
       boolean useParens = alwaysUseParens;
       if (startAnnotations(nc))
         useParens = true;
@@ -825,14 +775,14 @@ class Output {
       }
       pp.startGroup();
       boolean first = true;
-      for (NameClass child : nc.getChildren()) {
+      for (Iterator iter = nc.getChildren().iterator(); iter.hasNext();) {
         if (first)
           first = false;
         else {
           pp.softNewline(" ");
           pp.text("| ");
         }
-        child.accept(nameClassOutput);
+        ((NameClass)iter.next()).accept(nameClassOutput);
       }
       pp.endGroup();
       if (useParens) {
@@ -840,39 +790,39 @@ class Output {
         pp.text(")");
       }
       endAnnotations(nc);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
-  class AnnotationChildOutput implements AnnotationChildVisitor<VoidValue> {
-    public VoidValue visitText(TextAnnotation ta) {
+  class AnnotationChildOutput implements AnnotationChildVisitor {
+    public Object visitText(TextAnnotation ta) {
       literal(ta.getValue());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitComment(Comment c) {
+    public Object visitComment(Comment c) {
       comment("#", c.getValue());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitElement(ElementAnnotation elem) {
+    public Object visitElement(ElementAnnotation elem) {
       checkContext(elem.getContext(), elem.getSourceLocation());
       qualifiedName(elem.getNamespaceUri(), elem.getPrefix(), elem.getLocalName(),
                     // unqualified annotation element names have "" namespace
                     true);
       pp.text(" ");
       annotationBody(elem.getAttributes(), elem.getChildren());
-      return VoidValue.VOID;
+      return null;
     }
   }
 
   class FollowingAnnotationChildOutput extends AnnotationChildOutput {
-    public VoidValue visitElement(ElementAnnotation elem) {
+    public Object visitElement(ElementAnnotation elem) {
       pp.text(">> ");
       pp.startNest(">> ");
       super.visitElement(elem);
       pp.endNest();
-      return VoidValue.VOID;
+      return null;
     }
   }
 
@@ -890,9 +840,9 @@ class Output {
     }
     else if (!hasAnnotations(annotated))
       return false;
-    List<AnnotationChild> before = (annotated.mayContainText()
-                                    ? annotated.getFollowingElementAnnotations()
-                                    : annotated.getChildElementAnnotations());
+    List before = (annotated.mayContainText()
+                   ? annotated.getFollowingElementAnnotations()
+                   : annotated.getChildElementAnnotations());
     int i = 0;
     int len = before.size();
     for (; i < len; i++) {
@@ -905,14 +855,14 @@ class Output {
         if (j >= len)
           break;
       }
-      String doc = documentationString(before.get(j));
+      String doc = documentationString((AnnotationChild)before.get(j));
       if (doc == null)
         break;
       if (j == i)
         pp.hardNewline();
       else {
         for (;;) {
-          before.get(i).accept(annotationChildOutput);
+          ((Comment)before.get(i)).accept(annotationChildOutput);
           if (++i == j)
             break;
           pp.hardNewline();
@@ -944,25 +894,26 @@ class Output {
     if (!elem.getAttributes().isEmpty())
       return null;
     StringBuffer buf = new StringBuffer();
-    for (AnnotationChild a : elem.getChildren()) {
-      if (!(a instanceof TextAnnotation))
+    for (Iterator iter = elem.getChildren().iterator(); iter.hasNext();) {
+      Object obj = iter.next();
+      if (!(obj instanceof TextAnnotation))
         return null;
-      buf.append(((TextAnnotation)a).getValue());
+      buf.append(((TextAnnotation)obj).getValue());
     }
     return buf.toString();
   }
 
   private void endAnnotations(Annotated annotated) {
     if (!annotated.mayContainText()) {
-      for (AnnotationChild child : annotated.getFollowingElementAnnotations()) {
+      for (Iterator iter = annotated.getFollowingElementAnnotations().iterator(); iter.hasNext();) {
         if (annotated instanceof Component)
           pp.hardNewline();
         else
           pp.softNewline(" ");
-        AnnotationChildVisitor<VoidValue> output = (annotated instanceof Component
-                                                    ? annotationChildOutput
-                                                    : followingAnnotationChildOutput);
-        child.accept(output);
+        AnnotationChildVisitor output = (annotated instanceof Component
+                                         ? annotationChildOutput
+                                         : followingAnnotationChildOutput);
+        ((AnnotationChild)iter.next()).accept(output);
       }
     }
     if (hasAnnotations(annotated))
@@ -971,20 +922,21 @@ class Output {
 
   private void leadingComments(Annotated annotated) {
     boolean first = true;
-    for (Comment comment : annotated.getLeadingComments()) {
+    for (Iterator iter = annotated.getLeadingComments().iterator(); iter.hasNext();) {
       if (!first)
         pp.hardNewline();
       else
         first = false;
-      comment.accept(annotationChildOutput);
+      ((Comment)iter.next()).accept(annotationChildOutput);
     }
   }
 
-  private void annotationBody(List<AttributeAnnotation> attributes, List<AnnotationChild> children) {
+  private void annotationBody(List attributes, List children) {
     pp.startGroup();
     pp.text("[");
     pp.startNest(indent);
-    for (AttributeAnnotation att : attributes) {
+    for (Iterator iter = attributes.iterator(); iter.hasNext();) {
+      AttributeAnnotation att = (AttributeAnnotation)iter.next();
       pp.softNewline(" ");
       pp.startGroup();
       qualifiedName(att.getNamespaceUri(), att.getPrefix(), att.getLocalName(), true);
@@ -995,9 +947,9 @@ class Output {
       pp.endNest();
       pp.endGroup();
     }
-    for (AnnotationChild child : children) {
+    for (Iterator iter = children.iterator(); iter.hasNext();) {
       pp.softNewline(" ");
-      child.accept(annotationChildOutput);
+      ((AnnotationChild)iter.next()).accept(annotationChildOutput);
     }
     pp.endNest();
     pp.softNewline(" ");
@@ -1009,7 +961,7 @@ class Output {
     body(container.getComponents());
   }
 
-  private void body(List<Component> components) {
+  private void body(List components) {
     if (components.size() == 0)
       pp.text(" { }");
     else {
@@ -1023,14 +975,14 @@ class Output {
     }
   }
 
-  private void innerBody(List<Component> components) {
+  private void innerBody(List components) {
     boolean first = true;
-    for (Component c : components) {
+    for (Iterator iter = components.iterator(); iter.hasNext();) {
       if (first)
         first = false;
       else
         pp.hardNewline();
-      c.accept(componentOutput);
+      ((Component)iter.next()).accept(componentOutput);
     }
   }
 

@@ -1,6 +1,6 @@
 package com.thaiopensource.relaxng.output.xsd.basic;
 
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 import com.thaiopensource.relaxng.edit.SourceLocation;
 
 public class Element extends Particle implements Structure {
@@ -21,11 +21,11 @@ public class Element extends Particle implements Structure {
     return complexType;
   }
 
-  public <T> T accept(ParticleVisitor<T> visitor) {
+  public Object accept(ParticleVisitor visitor) {
     return visitor.visitElement(this);
   }
 
-  public <T> T accept(StructureVisitor<T> visitor) {
+  public Object accept(StructureVisitor visitor) {
     return visitor.visitElement(this);
   }
 

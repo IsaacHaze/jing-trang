@@ -1,11 +1,8 @@
 package com.thaiopensource.relaxng.output.xsd;
 
-import com.thaiopensource.relaxng.edit.AbstractPatternVisitor;
+import com.thaiopensource.relaxng.edit.AbstractVisitor;
 import com.thaiopensource.relaxng.edit.AttributePattern;
 import com.thaiopensource.relaxng.edit.ChoicePattern;
-import com.thaiopensource.relaxng.edit.Combine;
-import com.thaiopensource.relaxng.edit.ComponentVisitor;
-import com.thaiopensource.relaxng.edit.CompositePattern;
 import com.thaiopensource.relaxng.edit.DataPattern;
 import com.thaiopensource.relaxng.edit.DefineComponent;
 import com.thaiopensource.relaxng.edit.DivComponent;
@@ -24,28 +21,31 @@ import com.thaiopensource.relaxng.edit.Pattern;
 import com.thaiopensource.relaxng.edit.PatternVisitor;
 import com.thaiopensource.relaxng.edit.RefPattern;
 import com.thaiopensource.relaxng.edit.SchemaCollection;
-import com.thaiopensource.relaxng.edit.SchemaDocument;
 import com.thaiopensource.relaxng.edit.TextPattern;
 import com.thaiopensource.relaxng.edit.ValuePattern;
-import com.thaiopensource.util.VoidValue;
 import com.thaiopensource.relaxng.edit.ZeroOrMorePattern;
+import com.thaiopensource.relaxng.edit.ComponentVisitor;
+import com.thaiopensource.relaxng.edit.CompositePattern;
+import com.thaiopensource.relaxng.edit.Combine;
+import com.thaiopensource.relaxng.edit.SchemaDocument;
 import com.thaiopensource.relaxng.output.common.ErrorReporter;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.Vector;
+import java.util.Iterator;
 
 class SchemaInfo {
   private final SchemaCollection sc;
   private final GrammarPattern grammar;
   private final ErrorReporter er;
-  private final Map<Pattern, ChildType> childTypeMap = new HashMap<Pattern, ChildType>();
-  private final Map<String, Define> defineMap = new HashMap<String, Define>();
-  private final Set<DefineComponent> ignoredDefines = new HashSet<DefineComponent>();
-  private final PatternVisitor<ChildType> childTypeVisitor = new ChildTypeVisitor();
+  private final Map childTypeMap = new HashMap();
+  private final Map defineMap = new HashMap();
+  private final Set ignoredDefines = new HashSet();
+  private final PatternVisitor childTypeVisitor = new ChildTypeVisitor();
 
   private static final int DEFINE_KEEP = 0;
   private static final int DEFINE_IGNORE = 1;
@@ -61,141 +61,137 @@ class SchemaInfo {
     DefineComponent head;
   }
 
-  abstract class PatternAnalysisVisitor<T> extends AbstractPatternVisitor<T> {
-    abstract T get(Pattern p);
-    abstract T choice(T o1, T o2);
-    abstract T group(T o1, T o2);
-    T interleave(T o1, T o2) {
+  abstract class PatternAnalysisVisitor extends AbstractVisitor {
+    abstract Object get(Pattern p);
+    abstract Object choice(Object o1, Object o2);
+    abstract Object group(Object o1, Object o2);
+    Object interleave(Object o1, Object o2) {
       return group(o1, o2);
     }
-    T ref(T obj) {
+    Object ref(Object obj) {
       return obj;
     }
-    T oneOrMore(T obj) {
+    Object oneOrMore(Object obj) {
       return group(obj, obj);
     }
-    abstract T empty();
-    abstract T text();
-    abstract T data();
-    abstract T notAllowed();
-    T list(T obj) {
+    abstract Object empty();
+    abstract Object text();
+    abstract Object data();
+    abstract Object notAllowed();
+    Object list(Object obj) {
       return data();
     }
 
-    public T visitChoice(ChoicePattern p) {
-      List<Pattern> list = p.getChildren();
-      T obj = get(list.get(0));
+    public Object visitChoice(ChoicePattern p) {
+      List list = p.getChildren();
+      Object obj = get((Pattern)list.get(0));
       for (int i = 1, length = list.size(); i < length; i++)
-        obj = choice(obj, get(list.get(i)));
+        obj = choice(obj, get((Pattern)list.get(i)));
       return obj;
     }
 
-    public T visitGroup(GroupPattern p) {
-      List<Pattern> list = p.getChildren();
-      T obj = get(list.get(0));
+    public Object visitGroup(GroupPattern p) {
+      List list = p.getChildren();
+      Object obj = get((Pattern)list.get(0));
       for (int i = 1, length = list.size(); i < length; i++)
-        obj = group(obj, get(list.get(i)));
+        obj = group(obj, get((Pattern)list.get(i)));
       return obj;
     }
 
-    public T visitInterleave(InterleavePattern p) {
-      List<Pattern> list = p.getChildren();
-      T obj = get(list.get(0));
+    public Object visitInterleave(InterleavePattern p) {
+      List list = p.getChildren();
+      Object obj = get((Pattern)list.get(0));
       for (int i = 1, length = list.size(); i < length; i++)
-        obj = interleave(obj, get(list.get(i)));
+        obj = interleave(obj, get((Pattern)list.get(i)));
       return obj;
     }
 
-    public T visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       return choice(empty(), oneOrMore(get(p.getChild())));
     }
 
-    public T visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       return oneOrMore(get(p.getChild()));
     }
 
-    public T visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       return choice(empty(), get(p.getChild()));
     }
 
-    public T visitEmpty(EmptyPattern p) {
+    public Object visitEmpty(EmptyPattern p) {
       return empty();
     }
 
-    public T visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       return ref(get(getBody(p)));
     }
 
-    public T visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       return interleave(text(), get(p.getChild()));
     }
 
-    public T visitText(TextPattern p) {
+    public Object visitText(TextPattern p) {
       return text();
     }
 
-    public T visitData(DataPattern p) {
+    public Object visitData(DataPattern p) {
       return data();
     }
 
-    public T visitValue(ValuePattern p) {
+    public Object visitValue(ValuePattern p) {
       return data();
     }
 
-    public T visitList(ListPattern p) {
+    public Object visitList(ListPattern p) {
       return list(get(p.getChild()));
     }
 
-    public T visitNotAllowed(NotAllowedPattern p) {
+    public Object visitNotAllowed(NotAllowedPattern p) {
       return notAllowed();
-    }
-
-    public T visitPattern(Pattern p) {
-      return null;
     }
   }
 
-  class ChildTypeVisitor extends PatternAnalysisVisitor<ChildType> {
-    ChildType get(Pattern p) {
+  class ChildTypeVisitor extends PatternAnalysisVisitor {
+    Object get(Pattern p) {
       return getChildType(p);
     }
 
-    ChildType empty() {
+    Object empty() {
       return ChildType.EMPTY;
     }
 
-    ChildType text() {
+    Object text() {
       return ChildType.choice(ChildType.TEXT, ChildType.EMPTY);
     }
 
-    ChildType data() {
+    Object data() {
       return ChildType.DATA;
     }
 
-    ChildType notAllowed() {
+    Object notAllowed() {
       return ChildType.NOT_ALLOWED;
     }
 
-    ChildType list(ChildType t) {
-      if (t == ChildType.NOT_ALLOWED)
-        return t;
+    Object list(Object obj) {
+      if (obj.equals(ChildType.NOT_ALLOWED))
+        return obj;
       return data();
     }
 
-    ChildType choice(ChildType t1, ChildType t2) {
-      return ChildType.choice(t1, t2);
+    Object choice(Object o1, Object o2) {
+      return ChildType.choice((ChildType)o1, (ChildType)o2);
     }
 
-    ChildType group(ChildType t1, ChildType t2) {
-      return ChildType.group(t1, t2);
+    Object group(Object o1, Object o2) {
+      return ChildType.group((ChildType)o1, (ChildType)o2);
     }
 
-    public ChildType visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       return ChildType.ELEMENT;
     }
 
-    public ChildType visitAttribute(AttributePattern p) {
-      if (getChildType(p.getChild()) == ChildType.NOT_ALLOWED)
+    public Object visitAttribute(AttributePattern p) {
+      if (getChildType(p.getChild()).equals(ChildType.NOT_ALLOWED))
         return ChildType.NOT_ALLOWED;
       return ChildType.choice(ChildType.ATTRIBUTE, ChildType.EMPTY);
     }
@@ -212,24 +208,24 @@ class SchemaInfo {
     }
   }
 
-  class GrammarVisitor implements ComponentVisitor<VoidValue> {
-    private final Set<String> openIncludes = new HashSet<String>();
-    private final Set<String> allIncludes = new HashSet<String>();
-    private List<Override> overrides = null;
+  class GrammarVisitor implements ComponentVisitor {
+    private final Set openIncludes = new HashSet();
+    private final Set allIncludes = new HashSet();
+    private List overrides = null;
 
-    public VoidValue visitDefine(DefineComponent c) {
+    public Object visitDefine(DefineComponent c) {
       Define define = lookupDefine(c.getName());
       if (overrides != null)
         overrides.add(new Override(define, c.getName()));
       if (define.status != DEFINE_KEEP) {
         ignoredDefines.add(c);
         define.status = DEFINE_IGNORE;
-        return VoidValue.VOID;
+        return null;
       }
       if (c.getCombine() == null) {
         if (define.hadImplicit) {
           er.error("multiple_define", c.getName(), c.getSourceLocation());
-          return VoidValue.VOID;
+          return null;
         }
         define.hadImplicit = true;
       }
@@ -243,7 +239,7 @@ class SchemaInfo {
       }
       else if (define.combine != c.getCombine()) {
         er.error("inconsistent_combine", c.getName(), c.getSourceLocation());
-        return VoidValue.VOID;
+        return null;
       }
       if (define.pattern == null) {
         define.pattern = c.getBody();
@@ -255,17 +251,17 @@ class SchemaInfo {
         define.wrapper.getChildren().add(c.getBody());
         define.pattern = define.wrapper;
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitDiv(DivComponent c) {
+    public Object visitDiv(DivComponent c) {
       c.componentsAccept(this);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitInclude(IncludeComponent c) {
-      List<Override> overrides = new Vector<Override>();
-      List<Override> savedOverrides = this.overrides;
+    public Object visitInclude(IncludeComponent c) {
+      List overrides = new Vector();
+      List savedOverrides = this.overrides;
       this.overrides = overrides;
       c.componentsAccept(this);
       this.overrides = savedOverrides;
@@ -275,7 +271,8 @@ class SchemaInfo {
       else if (allIncludes.contains(href))
         er.error("multiple_include", href, c.getSourceLocation());
       else {
-        for (Override or : overrides) {
+        for (Iterator iter = overrides.iterator(); iter.hasNext();) {
+          Override or = (Override)iter.next();
           or.status = or.define.status;
           or.define.status = DEFINE_REQUIRE;
         }
@@ -283,7 +280,8 @@ class SchemaInfo {
         openIncludes.add(href);
         getSchema(href).componentsAccept(this);
         openIncludes.remove(href);
-        for (Override or : overrides) {
+        for (Iterator iter = overrides.iterator(); iter.hasNext();) {
+          Override or = (Override)iter.next();
           if (or.define.status == DEFINE_REQUIRE) {
             if (or.name == DefineComponent.START)
               er.error("missing_start_replacement", c.getSourceLocation());
@@ -293,7 +291,7 @@ class SchemaInfo {
           or.define.status = or.status;
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
   }
 
@@ -306,7 +304,7 @@ class SchemaInfo {
   }
 
   private void forceGrammar() {
-    SchemaDocument sd = sc.getSchemaDocumentMap().get(sc.getMainUri());
+    SchemaDocument sd = (SchemaDocument)sc.getSchemaDocumentMap().get(sc.getMainUri());
     sd.setPattern(convertToGrammar(sd.getPattern()));
     // TODO convert other schemas
   }
@@ -333,17 +331,17 @@ class SchemaInfo {
   }
 
   GrammarPattern getSchema(String sourceUri) {
-    return (GrammarPattern)(sc.getSchemaDocumentMap().get(sourceUri)).getPattern();
+    return (GrammarPattern)((SchemaDocument)sc.getSchemaDocumentMap().get(sourceUri)).getPattern();
   }
 
   String getEncoding(String sourceUri) {
-    return (sc.getSchemaDocumentMap().get(sourceUri)).getEncoding();
+    return ((SchemaDocument)sc.getSchemaDocumentMap().get(sourceUri)).getEncoding();
   }
 
   ChildType getChildType(Pattern p) {
-    ChildType ct = childTypeMap.get(p);
+    ChildType ct = (ChildType)childTypeMap.get(p);
     if (ct == null) {
-      ct = p.accept(childTypeVisitor);
+      ct = (ChildType)p.accept(childTypeVisitor);
       childTypeMap.put(p, ct);
     }
     return ct;
@@ -369,7 +367,7 @@ class SchemaInfo {
   }
 
   private Define lookupDefine(String name) {
-    Define define = defineMap.get(name);
+    Define define = (Define)defineMap.get(name);
     if (define == null) {
       define = new Define();
       defineMap.put(name, define);

@@ -22,6 +22,7 @@ import com.thaiopensource.relaxng.parse.CommentList;
 import com.thaiopensource.relaxng.parse.SubParser;
 import com.thaiopensource.relaxng.parse.ParseReceiver;
 import com.thaiopensource.relaxng.parse.ParsedPatternFuture;
+import com.thaiopensource.validate.IncorrectSchemaException;
 import com.thaiopensource.util.Localizer;
 import com.thaiopensource.xml.util.Name;
 
@@ -69,7 +70,7 @@ public class SchemaBuilderImpl implements SchemaBuilder, ElementAnnotationBuilde
                               DatatypeLibraryFactory datatypeLibraryFactory,
                               SchemaPatternBuilder pb,
                               boolean isAttributesPattern)
-          throws IllegalSchemaException, IOException, SAXException {
+          throws IncorrectSchemaException, IOException, SAXException {
     try {
       SchemaBuilderImpl sb = new SchemaBuilderImpl(parseable,
                                                    eh,
@@ -79,6 +80,9 @@ public class SchemaBuilderImpl implements SchemaBuilder, ElementAnnotationBuilde
       if (isAttributesPattern)
         pp = sb.wrapAttributesPattern(pp);
       return sb.expandPattern((Pattern)pp);
+    }
+    catch (IllegalSchemaException e) {
+      throw new IncorrectSchemaException();
     }
     catch (BuildException e) {
       throw unwrapBuildException(e);
@@ -95,12 +99,15 @@ public class SchemaBuilderImpl implements SchemaBuilder, ElementAnnotationBuilde
                                                        pb);
     final ParsedPatternFuture pf = parser.installHandlers(xr, sb, new RootScope(sb));
     return new PatternFuture() {
-      public Pattern getPattern(boolean isAttributesPattern) throws IllegalSchemaException, SAXException, IOException {
+      public Pattern getPattern(boolean isAttributesPattern) throws IncorrectSchemaException, SAXException, IOException {
         try {
           ParsedPattern pp = pf.getParsedPattern();
           if (isAttributesPattern)
             pp = sb.wrapAttributesPattern(pp);
           return sb.expandPattern((Pattern)pp);
+        }
+        catch (IllegalSchemaException e) {
+          throw new IncorrectSchemaException();
         }
         catch (BuildException e) {
           throw unwrapBuildException(e);
@@ -109,14 +116,14 @@ public class SchemaBuilderImpl implements SchemaBuilder, ElementAnnotationBuilde
     };
   }
 
-  static RuntimeException unwrapBuildException(BuildException e) throws SAXException, IllegalSchemaException, IOException {
+  static RuntimeException unwrapBuildException(BuildException e) throws SAXException, IncorrectSchemaException, IOException {
     Throwable t = e.getCause();
     if (t instanceof IOException)
       throw (IOException)t;
     if (t instanceof RuntimeException)
       return (RuntimeException)t;
     if (t instanceof IllegalSchemaException)
-      throw new IllegalSchemaException();
+      throw new IncorrectSchemaException();
     if (t instanceof SAXException)
       throw (SAXException)t;
     if (t instanceof Exception)
@@ -465,9 +472,9 @@ public class SchemaBuilderImpl implements SchemaBuilder, ElementAnnotationBuilde
     }
 
     public ParsedPattern endGrammar(Location loc, Annotations anno) throws BuildException {
-      for (Enumeration e = defines.keys();
-           e.hasMoreElements();) {
-        String name = (String)e.nextElement();
+      for (Enumeration enum = defines.keys();
+           enum.hasMoreElements();) {
+        String name = (String)enum.nextElement();
         RefPattern rp = (RefPattern)defines.get(name);
         if (rp.getPattern() == null) {
           sb.error("reference_to_undefined", name, rp.getRefLocator());

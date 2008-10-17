@@ -1,36 +1,38 @@
 package com.thaiopensource.relaxng.output.dtd;
 
-import com.thaiopensource.relaxng.edit.Combine;
-import com.thaiopensource.relaxng.edit.Component;
-import com.thaiopensource.relaxng.edit.ComponentVisitor;
-import com.thaiopensource.relaxng.edit.Container;
-import com.thaiopensource.relaxng.edit.DefineComponent;
-import com.thaiopensource.relaxng.edit.DivComponent;
 import com.thaiopensource.relaxng.edit.GrammarPattern;
-import com.thaiopensource.relaxng.edit.IncludeComponent;
-import com.thaiopensource.relaxng.edit.InterleavePattern;
 import com.thaiopensource.relaxng.edit.Pattern;
+import com.thaiopensource.relaxng.edit.Container;
+import com.thaiopensource.relaxng.edit.Component;
+import com.thaiopensource.relaxng.edit.DivComponent;
+import com.thaiopensource.relaxng.edit.DefineComponent;
+import com.thaiopensource.relaxng.edit.IncludeComponent;
+import com.thaiopensource.relaxng.edit.ComponentVisitor;
 import com.thaiopensource.relaxng.edit.SchemaCollection;
-import com.thaiopensource.util.VoidValue;
+import com.thaiopensource.relaxng.edit.SourceLocation;
+import com.thaiopensource.relaxng.edit.Combine;
+import com.thaiopensource.relaxng.edit.InterleavePattern;
+import com.thaiopensource.relaxng.edit.SchemaDocument;
 import com.thaiopensource.relaxng.output.common.ErrorReporter;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.HashSet;
 
-class GrammarPart implements ComponentVisitor<VoidValue> {
+class GrammarPart implements ComponentVisitor {
   private final ErrorReporter er;
-  private final Map<String, Pattern> defines;
-  private final Set<String> attlists;
-  private final Set<String> implicitlyCombinedDefines;
-  private final Map<String, Combine> combineTypes;
+  private final Map defines;
+  private final Set attlists;
+  private final Set implicitlyCombinedDefines;
+  private final Map combineTypes;
   private final SchemaCollection schemas;
-  private final Map<String, GrammarPart> parts;
+  private final Map parts;
   // maps name to component that provides it
-  private final Map<String, Component> whereProvided = new HashMap<String, Component>();
-  private final Set<String> pendingIncludes;
+  private final Map whereProvided = new HashMap();
+  private final Set pendingIncludes;
 
   public static class IncludeLoopException extends RuntimeException {
     private final IncludeComponent include;
@@ -45,15 +47,15 @@ class GrammarPart implements ComponentVisitor<VoidValue> {
   }
 
 
-  GrammarPart(ErrorReporter er, Map<String, Pattern> defines, Set<String> attlists, SchemaCollection schemas, Map<String, GrammarPart> parts, GrammarPattern p) {
+  GrammarPart(ErrorReporter er, Map defines, Set attlists, SchemaCollection schemas, Map parts, GrammarPattern p) {
     this.er = er;
     this.defines = defines;
     this.attlists = attlists;
     this.schemas = schemas;
     this.parts = parts;
-    this.pendingIncludes = new HashSet<String>();
-    this.implicitlyCombinedDefines = new HashSet<String>();
-    this.combineTypes = new HashMap<String, Combine>();
+    this.pendingIncludes = new HashSet();
+    this.implicitlyCombinedDefines = new HashSet();
+    this.combineTypes = new HashMap();
     visitContainer(p);
   }
 
@@ -69,22 +71,22 @@ class GrammarPart implements ComponentVisitor<VoidValue> {
     visitContainer(p);
   }
 
-  Set<String> providedSet() {
+  Set providedSet() {
     return whereProvided.keySet();
   }
 
-  public VoidValue visitContainer(Container c) {
-    List<Component> list = c.getComponents();
+  public Object visitContainer(Container c) {
+    List list = c.getComponents();
     for (int i = 0, len = list.size(); i < len; i++)
-      (list.get(i)).accept(this);
-    return VoidValue.VOID;
+      ((Component)list.get(i)).accept(this);
+    return null;
   }
 
-  public VoidValue visitDiv(DivComponent c) {
+  public Object visitDiv(DivComponent c) {
     return visitContainer(c);
   }
 
-  public VoidValue visitDefine(DefineComponent c) {
+  public Object visitDefine(DefineComponent c) {
     String name = c.getName();
     Combine combine = c.getCombine();
     if (combine == null) {
@@ -94,7 +96,7 @@ class GrammarPart implements ComponentVisitor<VoidValue> {
         implicitlyCombinedDefines.add(name);
     }
     else {
-      Combine oldCombine = combineTypes.get(name);
+      Combine oldCombine = (Combine)combineTypes.get(name);
       if (oldCombine != null) {
         if (oldCombine != combine)
           er.error("inconsistent_combine", c.getSourceLocation());
@@ -102,7 +104,7 @@ class GrammarPart implements ComponentVisitor<VoidValue> {
       else
         combineTypes.put(name, combine);
     }
-    Pattern oldDef = defines.get(name);
+    Pattern oldDef = (Pattern)defines.get(name);
     if (oldDef != null) {
       if (combine == Combine.CHOICE)
         er.error("sorry_combine_choice", c.getSourceLocation());
@@ -119,24 +121,24 @@ class GrammarPart implements ComponentVisitor<VoidValue> {
       defines.put(name, c.getBody());
       whereProvided.put(name, c);
     }
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitInclude(IncludeComponent c) {
+  public Object visitInclude(IncludeComponent c) {
     String href = c.getHref();
     if (pendingIncludes.contains(href))
       throw new IncludeLoopException(c);
     pendingIncludes.add(href);
-    GrammarPattern p = (GrammarPattern)(schemas.getSchemaDocumentMap().get(href)).getPattern();
+    GrammarPattern p = (GrammarPattern)((SchemaDocument)schemas.getSchemaDocumentMap().get(href)).getPattern();
     GrammarPart part = new GrammarPart(this, p);
     parts.put(href, part);
-    for (String name : part.providedSet())
-      whereProvided.put(name, c);
+    for (Iterator iter = part.providedSet().iterator(); iter.hasNext();)
+      whereProvided.put((String)iter.next(), c);
     pendingIncludes.remove(href);
-    return VoidValue.VOID;
+    return null;
   }
 
   Component getWhereProvided(String paramEntityName) {
-    return whereProvided.get(paramEntityName);
+    return (Component)whereProvided.get(paramEntityName);
   }
 }

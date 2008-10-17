@@ -1,6 +1,6 @@
 package com.thaiopensource.relaxng.output.xsd.basic;
 
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 import com.thaiopensource.relaxng.edit.SourceLocation;
 import com.thaiopensource.util.Equal;
 
@@ -26,11 +26,11 @@ public class Attribute extends SingleAttributeUse implements Structure {
     return type;
   }
 
-  public <T> T accept(AttributeUseVisitor<T> visitor) {
+  public Object accept(AttributeUseVisitor visitor) {
     return visitor.visitAttribute(this);
   }
 
-  public <T> T accept(StructureVisitor<T> visitor) {
+  public Object accept(StructureVisitor visitor) {
     return visitor.visitAttribute(this);
   }
 

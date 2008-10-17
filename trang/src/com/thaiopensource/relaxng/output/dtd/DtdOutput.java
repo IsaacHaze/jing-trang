@@ -1,16 +1,11 @@
 package com.thaiopensource.relaxng.output.dtd;
 
-import com.thaiopensource.relaxng.edit.AbstractPatternVisitor;
 import com.thaiopensource.relaxng.edit.AbstractVisitor;
-import com.thaiopensource.relaxng.edit.Annotated;
-import com.thaiopensource.relaxng.edit.AnnotationChild;
 import com.thaiopensource.relaxng.edit.AttributeAnnotation;
 import com.thaiopensource.relaxng.edit.AttributePattern;
 import com.thaiopensource.relaxng.edit.ChoiceNameClass;
 import com.thaiopensource.relaxng.edit.ChoicePattern;
-import com.thaiopensource.relaxng.edit.Comment;
 import com.thaiopensource.relaxng.edit.Component;
-import com.thaiopensource.relaxng.edit.ComponentVisitor;
 import com.thaiopensource.relaxng.edit.CompositePattern;
 import com.thaiopensource.relaxng.edit.Container;
 import com.thaiopensource.relaxng.edit.DataPattern;
@@ -19,9 +14,7 @@ import com.thaiopensource.relaxng.edit.DivComponent;
 import com.thaiopensource.relaxng.edit.ElementPattern;
 import com.thaiopensource.relaxng.edit.GrammarPattern;
 import com.thaiopensource.relaxng.edit.GroupPattern;
-import com.thaiopensource.relaxng.edit.IncludeComponent;
 import com.thaiopensource.relaxng.edit.InterleavePattern;
-import com.thaiopensource.relaxng.edit.ListPattern;
 import com.thaiopensource.relaxng.edit.MixedPattern;
 import com.thaiopensource.relaxng.edit.NameClass;
 import com.thaiopensource.relaxng.edit.NameNameClass;
@@ -32,18 +25,23 @@ import com.thaiopensource.relaxng.edit.PatternVisitor;
 import com.thaiopensource.relaxng.edit.RefPattern;
 import com.thaiopensource.relaxng.edit.TextPattern;
 import com.thaiopensource.relaxng.edit.ValuePattern;
-import com.thaiopensource.util.VoidValue;
 import com.thaiopensource.relaxng.edit.ZeroOrMorePattern;
+import com.thaiopensource.relaxng.edit.IncludeComponent;
+import com.thaiopensource.relaxng.edit.ListPattern;
+import com.thaiopensource.relaxng.edit.Annotated;
+import com.thaiopensource.relaxng.edit.Comment;
+import com.thaiopensource.relaxng.edit.AnnotationChild;
 import com.thaiopensource.relaxng.output.OutputDirectory;
 import com.thaiopensource.relaxng.output.common.ErrorReporter;
 import com.thaiopensource.relaxng.output.common.NameClassSplitter;
-import com.thaiopensource.xml.out.CharRepertoire;
 import com.thaiopensource.xml.util.Naming;
 import com.thaiopensource.xml.util.WellKnownNamespaces;
+import com.thaiopensource.xml.out.CharRepertoire;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -57,37 +55,37 @@ class DtdOutput {
   private final int indent;
   private final int lineLength;
   private final String lineSep;
-  private final StringBuffer buf = new StringBuffer();
-  private final List<ElementPattern> elementQueue = new Vector<ElementPattern>();
-  private final List<String> requiredParamEntities = new Vector<String>();
-  private final List<String> externallyRequiredParamEntities = new Vector<String>();
-  private final Set<String> doneParamEntities = new HashSet<String>();
-  private final Set<String> doneIncludes = new HashSet<String>();
-  private final Set<String> pendingIncludes = new HashSet<String>();
+  final StringBuffer buf = new StringBuffer();
+  final List elementQueue = new Vector();
+  final List requiredParamEntities = new Vector();
+  final List externallyRequiredParamEntities = new Vector();
+  final Set doneParamEntities = new HashSet();
+  final Set doneIncludes = new HashSet();
+  final Set pendingIncludes = new HashSet();
   private final Analysis analysis;
   private final GrammarPart part;
   private final OutputDirectory od;
   private final ErrorReporter er;
-  private final Set<String> reservedEntityNames;
+  private final Set reservedEntityNames;
 
-  private final PatternVisitor<VoidValue> topLevelContentModelOutput = new TopLevelContentModelOutput();
-  private final AbstractVisitor nestedContentModelOutput = new ContentModelOutput();
-  private final PatternVisitor<VoidValue> expandedContentModelOutput = new ExpandedContentModelOutput();
-  private final PatternVisitor<VoidValue> groupContentModelOutput = new GroupContentModelOutput();
-  private final PatternVisitor<VoidValue> choiceContentModelOutput = new ChoiceContentModelOutput();
-  private final PatternVisitor<VoidValue> occurContentModelOutput = new ParenthesizedContentModelOutput();
-  private final PatternVisitor<VoidValue> innerElementClassOutput = new InnerElementClassOutput();
-  private final PatternVisitor<VoidValue> expandedInnerElementClassOutput = new ExpandedInnerElementClassOutput();
-  private final AttributeOutput attributeOutput = new AttributeOutput();
-  private final AttributeOutput optionalAttributeOutput = new OptionalAttributeOutput();
-  private final PatternVisitor<VoidValue> topLevelSimpleTypeOutput = new TopLevelSimpleTypeOutput();
-  private final PatternVisitor<VoidValue> nestedSimpleTypeOutput = new SimpleTypeOutput();
-  private final PatternVisitor<VoidValue> valueOutput = new ValueOutput();
-  private final GrammarOutput grammarOutput = new GrammarOutput();
+  final PatternVisitor topLevelContentModelOutput = new TopLevelContentModelOutput();
+  final AbstractVisitor nestedContentModelOutput = new ContentModelOutput();
+  final PatternVisitor expandedContentModelOutput = new ExpandedContentModelOutput();
+  final PatternVisitor groupContentModelOutput = new GroupContentModelOutput();
+  final PatternVisitor choiceContentModelOutput = new ChoiceContentModelOutput();
+  final PatternVisitor occurContentModelOutput = new ParenthesizedContentModelOutput();
+  final PatternVisitor innerElementClassOutput = new InnerElementClassOutput();
+  final PatternVisitor expandedInnerElementClassOutput = new ExpandedInnerElementClassOutput();
+  final AttributeOutput attributeOutput = new AttributeOutput();
+  final AttributeOutput optionalAttributeOutput = new OptionalAttributeOutput();
+  final PatternVisitor topLevelSimpleTypeOutput = new TopLevelSimpleTypeOutput();
+  final PatternVisitor nestedSimpleTypeOutput = new SimpleTypeOutput();
+  final PatternVisitor valueOutput = new ValueOutput();
+  final GrammarOutput grammarOutput = new GrammarOutput();
 
   static private final String DTD_URI = "http://www.thaiopensource.com/ns/relaxng/dtd";
 
-  private DtdOutput(boolean warnDatatypes, String sourceUri, Analysis analysis, Set<String> reservedEntityNames, OutputDirectory od, ErrorReporter er) {
+  private DtdOutput(boolean warnDatatypes, String sourceUri, Analysis analysis, Set reservedEntityNames, OutputDirectory od, ErrorReporter er) {
     this.warnDatatypes = warnDatatypes;
     this.sourceUri = sourceUri;
     this.analysis = analysis;
@@ -109,127 +107,127 @@ class DtdOutput {
     this.lineLength = od.getLineLength();
   }
 
-  class ParenthesizedContentModelOutput extends AbstractPatternVisitor<VoidValue> {
-    public VoidValue visitPattern(Pattern p) {
+  class ParenthesizedContentModelOutput extends AbstractVisitor {
+    public Object visitPattern(Pattern p) {
       buf.append('(');
       p.accept(nestedContentModelOutput);
       buf.append(')');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       Pattern def = getBody(p.getName());
       if (getContentType(def) == ContentType.DIRECT_SINGLE_ELEMENT)
         ((ElementPattern)def).getNameClass().accept(nestedContentModelOutput);
       else
         visitPattern(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       if (getContentType(p) == ContentType.DIRECT_SINGLE_ELEMENT) {
         p.getNameClass().accept(nestedContentModelOutput);
         elementQueue.add(p);
       }
       else
         visitPattern(p);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
   class ChoiceContentModelOutput extends ParenthesizedContentModelOutput {
-    public VoidValue visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       p.accept(nestedContentModelOutput);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       p.accept(nestedContentModelOutput);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       p.accept(nestedContentModelOutput);
-      return VoidValue.VOID;
+      return null;
     }
 
   }
 
-  private class GroupContentModelOutput extends ChoiceContentModelOutput {
-    public VoidValue visitGroup(GroupPattern p) {
+  class GroupContentModelOutput extends ChoiceContentModelOutput {
+    public Object visitGroup(GroupPattern p) {
       p.accept(nestedContentModelOutput);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
   class ContentModelOutput extends AbstractVisitor {
-    public VoidValue visitName(NameNameClass nc) {
+    public Object visitName(NameNameClass nc) {
       buf.append(nc.getLocalName());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitChoice(ChoiceNameClass nc) {
-      List<NameClass> list = nc.getChildren();
+    public Object visitChoice(ChoiceNameClass nc) {
+      List list = nc.getChildren();
       boolean needSep = false;
       for (int i = 0, len = list.size(); i < len; i++) {
         if (needSep)
           buf.append('|');
         else
           needSep = true;
-        list.get(i).accept(this);
+        ((NameClass)list.get(i)).accept(this);
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       p.getNameClass().accept(this);
       elementQueue.add(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       Pattern def = getBody(p.getName());
       if (getContentType(def) == ContentType.DIRECT_SINGLE_ELEMENT)
         ((ElementPattern)def).getNameClass().accept(this);
       else
         paramEntityRef(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       p.getChild().accept(occurContentModelOutput);
       buf.append('*');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       p.getChild().accept(occurContentModelOutput);
       buf.append('+');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       p.getChild().accept(occurContentModelOutput);
       buf.append('?');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitText(TextPattern p) {
+    public Object visitText(TextPattern p) {
       buf.append("#PCDATA");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       buf.append("#PCDATA");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitGroup(GroupPattern p) {
-      List<Pattern> list = p.getChildren();
+    public Object visitGroup(GroupPattern p) {
+      List list = p.getChildren();
       boolean needSep = false;
       final int len = list.size();
       for (int i = 0; i < len; i++) {
-        Pattern member = list.get(i);
+        Pattern member = (Pattern)list.get(i);
         ContentType t = getContentType(member);
         if (!t.isA(ContentType.EMPTY)) {
           if (needSep)
@@ -239,10 +237,10 @@ class DtdOutput {
           member.accept(groupContentModelOutput);
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitInterleave(InterleavePattern p) {
+    public Object visitInterleave(InterleavePattern p) {
       ContentType ct = getContentType(p);
       if (ct == ContentType.INTERLEAVE_ZERO_OR_MORE_ELEMENT_CLASS || ct == ContentType.INTERLEAVE_MIXED_MODEL) {
         buf.append('(');
@@ -251,24 +249,24 @@ class DtdOutput {
         buf.append('*');
       }
       else {
-        final List<Pattern> list = p.getChildren();
+        final List list = p.getChildren();
         for (int i = 0, len = list.size(); i < len; i++) {
-          Pattern member = list.get(i);
+          Pattern member = (Pattern)list.get(i);
           ContentType t = getContentType(member);
           if (!t.isA(ContentType.EMPTY))
             member.accept(this);
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitChoice(ChoicePattern p) {
-      List<Pattern> list = p.getChildren();
+    public Object visitChoice(ChoicePattern p) {
+      List list = p.getChildren();
       boolean needSep = false;
       final int len = list.size();
       if (getContentType(p).isA(ContentType.MIXED_ELEMENT_CLASS)) {
         for (int i = 0; i < len; i++) {
-          Pattern member = list.get(i);
+          Pattern member = (Pattern)list.get(i);
           if (getContentType(member).isA(ContentType.MIXED_ELEMENT_CLASS)) {
             member.accept(nestedContentModelOutput);
             needSep = true;
@@ -277,7 +275,7 @@ class DtdOutput {
         }
       }
       for (int i = 0; i < len; i++) {
-        Pattern member = list.get(i);
+        Pattern member = (Pattern)list.get(i);
         ContentType t = getContentType(member);
         if (t != ContentType.NOT_ALLOWED && t != ContentType.EMPTY && !t.isA(ContentType.MIXED_ELEMENT_CLASS)) {
           if (needSep)
@@ -288,7 +286,7 @@ class DtdOutput {
         }
       }
       for (int i = 0; i < len; i++) {
-        Pattern member = list.get(i);
+        Pattern member = (Pattern)list.get(i);
         ContentType t = getContentType(member);
         if (t == ContentType.NOT_ALLOWED) {
           if (needSep)
@@ -298,47 +296,47 @@ class DtdOutput {
           member.accept(nestedContentModelOutput);
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitGrammar(GrammarPattern p) {
+    public Object visitGrammar(GrammarPattern p) {
       return getBody(DefineComponent.START).accept(this);
     }
   }
 
   class TopLevelContentModelOutput extends ContentModelOutput {
-    public VoidValue visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       buf.append('(');
       p.getChild().accept(nestedContentModelOutput);
       buf.append(')');
       buf.append('*');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       buf.append('(');
       p.getChild().accept(nestedContentModelOutput);
       buf.append(')');
       buf.append('+');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       buf.append('(');
       p.getChild().accept(nestedContentModelOutput);
       buf.append(')');
       buf.append('?');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       buf.append('(');
       super.visitElement(p);
       buf.append(')');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       ContentType t = getContentType(p);
       if (t.isA(ContentType.MIXED_MODEL))
         super.visitRef(p);
@@ -347,24 +345,24 @@ class DtdOutput {
         super.visitRef(p);
         buf.append(')');
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitChoice(ChoicePattern p) {
+    public Object visitChoice(ChoicePattern p) {
       buf.append('(');
       p.accept(nestedContentModelOutput);
       buf.append(')');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitText(TextPattern p) {
+    public Object visitText(TextPattern p) {
       buf.append('(');
       p.accept(nestedContentModelOutput);
       buf.append(')');
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       buf.append('(');
       if (getContentType(p.getChild()) == ContentType.EMPTY)
         buf.append("#PCDATA)");
@@ -374,14 +372,14 @@ class DtdOutput {
         buf.append(')');
         buf.append('*');
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitGroup(GroupPattern p) {
-      List<Pattern> list = p.getChildren();
+    public Object visitGroup(GroupPattern p) {
+      List list = p.getChildren();
       Pattern main = null;
       for (int i = 0, len = list.size(); i < len; i++) {
-        Pattern member = list.get(i);
+        Pattern member = (Pattern)list.get(i);
         if (!getContentType(member).isA(ContentType.EMPTY)) {
           if (main == null)
             main = member;
@@ -389,41 +387,35 @@ class DtdOutput {
             buf.append('(');
             nestedContentModelOutput.visitGroup(p);
             buf.append(')');
-            return VoidValue.VOID;
+            return null;
           }
         }
       }
       if (main != null)
         main.accept(this);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
   class ExpandedContentModelOutput extends ContentModelOutput {
-    public VoidValue visitElement(ElementPattern p) {
+    public Object visitElement(ElementPattern p) {
       p.getNameClass().accept(this);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
-  class PatternOutput extends AbstractPatternVisitor<VoidValue> {
-    public VoidValue visitPattern(Pattern p) {
-      return VoidValue.VOID;
-    }
-  }
-
-  class InnerElementClassOutput extends PatternOutput {
-    public VoidValue visitRef(RefPattern p) {
+  class InnerElementClassOutput extends AbstractVisitor {
+    public Object visitRef(RefPattern p) {
       getBody(p.getName()).accept(expandedInnerElementClassOutput);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitComposite(CompositePattern p) {
-      List<Pattern> list = p.getChildren();
+    public Object visitComposite(CompositePattern p) {
+      List list = p.getChildren();
       boolean needSep = false;
       int doneIndex = -1;
       for (int i = 0, len = list.size(); i < len; i++) {
-        Pattern member = list.get(i);
+        Pattern member = (Pattern)list.get(i);
         ContentType ct = getContentType(member);
         if (ct.isA(ContentType.MIXED_MODEL) || ct == ContentType.TEXT) {
           member.accept(this);
@@ -434,7 +426,7 @@ class DtdOutput {
       }
       for (int i = 0, len = list.size(); i < len; i++) {
         if (i != doneIndex) {
-          Pattern member = list.get(i);
+          Pattern member = (Pattern)list.get(i);
           if (getContentType(member) != ContentType.EMPTY) {
             if (needSep)
               buf.append('|');
@@ -444,38 +436,38 @@ class DtdOutput {
           }
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       p.getChild().accept(nestedContentModelOutput);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       if (getContentType(p.getChild()) == ContentType.EMPTY)
         buf.append("#PCDATA");
       else {
         buf.append("#PCDATA|");
         p.getChild().accept(this);
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitText(TextPattern p) {
+    public Object visitText(TextPattern p) {
       buf.append("#PCDATA");
-      return VoidValue.VOID;
+      return null;
     }
   }
 
   class ExpandedInnerElementClassOutput extends InnerElementClassOutput {
-    public VoidValue visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       p.getChild().accept(expandedContentModelOutput);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
-  class AttributeOutput extends PatternOutput {
+  class AttributeOutput extends AbstractVisitor {
     void output(Pattern p) {
       if (getAttributeType(p) != AttributeType.EMPTY)
         p.accept(this);
@@ -487,31 +479,31 @@ class DtdOutput {
         buf.append(' ');
     }
 
-    public VoidValue visitComposite(CompositePattern p) {
-      List<Pattern> list = p.getChildren();
+    public Object visitComposite(CompositePattern p) {
+      List list = p.getChildren();
       for (int i = 0, len = list.size(); i < len; i++)
-        output(list.get(i));
-      return VoidValue.VOID;
+        output((Pattern)list.get(i));
+      return null;
     }
 
-    public VoidValue visitMixed(MixedPattern p) {
+    public Object visitMixed(MixedPattern p) {
       output(p.getChild());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOneOrMore(OneOrMorePattern p) {
+    public Object visitOneOrMore(OneOrMorePattern p) {
       output(p.getChild());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitZeroOrMore(ZeroOrMorePattern p) {
+    public Object visitZeroOrMore(ZeroOrMorePattern p) {
       if (getAttributeType(p) != AttributeType.SINGLE)
         er.warning("attribute_occur_approx", p.getSourceLocation());
       optionalAttributeOutput.output(p.getChild());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       ContentType t = getContentType(p);
       if (t.isA(ContentType.EMPTY) && isRequired()) {
         if (analysis.getParamEntityElementName(p.getName()) == null) {
@@ -521,21 +513,21 @@ class DtdOutput {
       }
       else
         output(getBody(p.getName()));
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitAttribute(AttributePattern p) {
+    public Object visitAttribute(AttributePattern p) {
       ContentType ct = getContentType(p.getChild());
       if (ct == ContentType.NOT_ALLOWED)
-        return VoidValue.VOID;
-      List<NameNameClass> names = NameClassSplitter.split(p.getNameClass());
+        return null;
+      List names = NameClassSplitter.split(p.getNameClass());
       int len = names.size();
       if (len > 1)
         er.warning("attribute_occur_approx", p.getSourceLocation());
       for (int i = 0; i < len; i++) {
         int start = buf.length();
         newlineIndent();
-        NameNameClass nnc = names.get(i);
+        NameNameClass nnc = (NameNameClass)names.get(i);
         String ns = nnc.getNamespaceUri();
 
         if (!ns.equals("") && ns != NameClass.INHERIT_NS) {
@@ -581,25 +573,25 @@ class DtdOutput {
           }
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
 
     boolean isRequired() {
       return true;
     }
 
-    public VoidValue visitChoice(ChoicePattern p) {
+    public Object visitChoice(ChoicePattern p) {
       if (getAttributeType(p) != AttributeType.EMPTY)
         er.warning("attribute_occur_approx", p.getSourceLocation());
       optionalAttributeOutput.visitComposite(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitOptional(OptionalPattern p) {
+    public Object visitOptional(OptionalPattern p) {
       if (getAttributeType(p) != AttributeType.SINGLE)
         er.warning("attribute_occur_approx", p.getSourceLocation());
       optionalAttributeOutput.output(p.getChild());
-      return VoidValue.VOID;
+      return null;
     }
   }
 
@@ -609,23 +601,23 @@ class DtdOutput {
     }
   }
 
-  class SimpleTypeOutput extends PatternOutput {
-    public VoidValue visitText(TextPattern p) {
+  class SimpleTypeOutput extends AbstractVisitor {
+    public Object visitText(TextPattern p) {
       buf.append("CDATA");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitValue(ValuePattern p) {
+    public Object visitValue(ValuePattern p) {
       buf.append(p.getValue());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       paramEntityRef(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitData(DataPattern p) {
+    public Object visitData(DataPattern p) {
       Datatypes.Info info = Datatypes.getInfo(p.getDatatypeLibrary(), p.getType());
       if (info == null) {
         er.warning("unrecognized_datatype", p.getSourceLocation());
@@ -642,15 +634,15 @@ class DtdOutput {
         }
         buf.append(info.closestType());
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitChoice(ChoicePattern p) {
-      List<Pattern> list = p.getChildren();
+    public Object visitChoice(ChoicePattern p) {
+      List list = p.getChildren();
       boolean needSep = false;
       final int len = list.size();
       for (int i = 0; i < len; i++) {
-        Pattern member = list.get(i);
+        Pattern member = (Pattern)list.get(i);
         ContentType t = getContentType(member);
         if (t != ContentType.NOT_ALLOWED) {
           if (needSep)
@@ -661,7 +653,7 @@ class DtdOutput {
         }
       }
       for (int i = 0; i < len; i++) {
-        Pattern member = list.get(i);
+        Pattern member = (Pattern)list.get(i);
         ContentType t = getContentType(member);
         if (t == ContentType.NOT_ALLOWED) {
           if (needSep)
@@ -671,19 +663,20 @@ class DtdOutput {
           member.accept(this);
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
+
   }
 
   class TopLevelSimpleTypeOutput extends SimpleTypeOutput {
-    public VoidValue visitList(ListPattern p) {
+    public Object visitList(ListPattern p) {
       if (warnDatatypes)
         er.warning("list_approx", p.getSourceLocation());
       buf.append("CDATA");
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitValue(ValuePattern p) {
+    public Object visitValue(ValuePattern p) {
       if (getContentType(p) == ContentType.ENUM) {
         buf.append('(');
         super.visitValue(p);
@@ -702,10 +695,10 @@ class DtdOutput {
           buf.append(type);
         }
       }
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitChoice(ChoicePattern p) {
+    public Object visitChoice(ChoicePattern p) {
       ContentType t = getContentType(p);
       if (t == ContentType.ENUM) {
         buf.append('(');
@@ -719,10 +712,10 @@ class DtdOutput {
       }
       else
         super.visitChoice(p);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       ContentType t = getContentType(p);
       if (t == ContentType.ENUM) {
         buf.append('(');
@@ -733,40 +726,40 @@ class DtdOutput {
         buf.append("CDATA");
       else
         super.visitRef(p);
-      return VoidValue.VOID;
+      return null;
     }
 
   }
 
-  private class ValueOutput extends PatternOutput {
-    public VoidValue visitValue(ValuePattern p) {
+  class ValueOutput extends AbstractVisitor {
+    public Object visitValue(ValuePattern p) {
       buf.append("CDATA #FIXED ");
       attributeValueLiteral(p.getValue());
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitRef(RefPattern p) {
+    public Object visitRef(RefPattern p) {
       paramEntityRef(p);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
-  class GrammarOutput implements ComponentVisitor<VoidValue> {
+  class GrammarOutput extends AbstractVisitor {
     public void visitContainer(Container c) {
-      final List<Component> list = c.getComponents();
+      final List list = c.getComponents();
       for (int i = 0, len = list.size(); i < len; i++)
-        (list.get(i)).accept(this);
+        ((Component)list.get(i)).accept(this);
     }
 
-    public VoidValue visitDiv(DivComponent c) {
+    public Object visitDiv(DivComponent c) {
       outputLeadingComments(c);
       outputInitialChildComments(c);
       visitContainer(c);
       outputFollowingComments(c);
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitDefine(DefineComponent c) {
+    public Object visitDefine(DefineComponent c) {
       if (c.getName() == DefineComponent.START) {
         outputLeadingComments(c);
         outputFollowingComments(c);
@@ -782,24 +775,24 @@ class DtdOutput {
         }
       }
       outputQueuedElements();
-      return VoidValue.VOID;
+      return null;
     }
 
-    public VoidValue visitInclude(IncludeComponent c) {
+    public Object visitInclude(IncludeComponent c) {
       outputInclude(c);
-      return VoidValue.VOID;
+      return null;
     }
   }
 
   void outputQueuedElements() {
-    for (ElementPattern p : elementQueue)
-      outputElement(p, null);
+    for (int i = 0; i < elementQueue.size(); i++)
+      outputElement((ElementPattern)elementQueue.get(i), null);
     elementQueue.clear();
   }
 
   static void output(boolean warnDatatypes, Analysis analysis, OutputDirectory od, ErrorReporter er) throws IOException {
     try {
-      new DtdOutput(warnDatatypes, analysis.getMainUri(), analysis, new HashSet<String>(), od, er).topLevelOutput();
+      new DtdOutput(warnDatatypes, analysis.getMainUri(), analysis, new HashSet(), od, er).topLevelOutput();
     }
     catch (WrappedIOException e) {
       throw e.cause;
@@ -895,7 +888,8 @@ class DtdOutput {
   }
 
   void outputRequiredComponents() {
-    for (String name : requiredParamEntities) {
+    for (int i = 0; i < requiredParamEntities.size(); i++) {
+      String name = (String)requiredParamEntities.get(i);
       Component c = part.getWhereProvided(name);
       if (c == null)
         externallyRequiredParamEntities.add(name);
@@ -1077,8 +1071,9 @@ class DtdOutput {
     if (def != null)
       outputLeadingComments(def);
     outputLeadingComments(p);
-    List<NameNameClass> names = NameClassSplitter.split(p.getNameClass());
-    for (NameNameClass name : names) {
+    List names = NameClassSplitter.split(p.getNameClass());
+    for (Iterator iter = names.iterator(); iter.hasNext();) {
+      NameNameClass name = (NameNameClass)iter.next();
       String ns = name.getNamespaceUri();
       String qName;
       String prefix;
@@ -1128,8 +1123,9 @@ class DtdOutput {
   }
 
   void outputAttributeNamespaces(Pattern p) {
-    Set<String> namespaces = analysis.getAttributeNamespaces(p);
-    for (String ns : namespaces) {
+    Set namespaces = analysis.getAttributeNamespaces(p);
+    for (Iterator iter = namespaces.iterator(); iter.hasNext();) {
+      String ns = (String)iter.next();
       String prefix = analysis.getPrefixForNamespaceUri(ns);
       outputNewline();
       outputIndent();
@@ -1154,10 +1150,12 @@ class DtdOutput {
     outputComments(a.getFollowingElementAnnotations());
   }
 
-  void outputComments(List<? extends AnnotationChild> list) {
-    for (AnnotationChild child : list)
+  void outputComments(List list) {
+    for (Iterator iter = list.iterator(); iter.hasNext();) {
+      AnnotationChild child = (AnnotationChild)iter.next();
       if (child instanceof Comment)
         outputComment(((Comment)child).getValue());
+    }
   }
 
   void outputComment(String value) {
@@ -1240,9 +1238,9 @@ class DtdOutput {
   }
 
   private static String getAttributeAnnotation(Annotated p, String ns, String localName) {
-    List<AttributeAnnotation> list = p.getAttributeAnnotations();
+    List list = p.getAttributeAnnotations();
     for (int i = 0, len = list.size(); i < len; i++) {
-      AttributeAnnotation att = list.get(i);
+      AttributeAnnotation att = (AttributeAnnotation)list.get(i);
       if (att.getLocalName().equals(localName)
           && att.getNamespaceUri().equals(ns))
         return att.getValue();

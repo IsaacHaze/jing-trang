@@ -5,11 +5,11 @@ import com.thaiopensource.relaxng.edit.SourceLocation;
 import java.util.List;
 
 public class ParticleChoice extends ParticleGroup {
-  public ParticleChoice(SourceLocation location, Annotation annotation, List<Particle> children) {
+  public ParticleChoice(SourceLocation location, Annotation annotation, List children) {
     super(location, annotation, children);
   }
 
-  public <T> T accept(ParticleVisitor<T> visitor) {
+  public Object accept(ParticleVisitor visitor) {
     return visitor.visitChoice(this);
   }
 }

@@ -1,49 +1,50 @@
 package com.thaiopensource.relaxng.output.xsd;
 
-import com.thaiopensource.relaxng.output.common.ErrorReporter;
-import com.thaiopensource.relaxng.output.xsd.basic.AbstractAttributeUseVisitor;
-import com.thaiopensource.relaxng.output.xsd.basic.Attribute;
-import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroup;
-import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroupDefinition;
-import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroupRef;
-import com.thaiopensource.relaxng.output.xsd.basic.AttributeUse;
-import com.thaiopensource.relaxng.output.xsd.basic.AttributeUseChoice;
-import com.thaiopensource.relaxng.output.xsd.basic.ComplexType;
-import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeComplexContent;
-import com.thaiopensource.relaxng.output.xsd.basic.Element;
-import com.thaiopensource.relaxng.output.xsd.basic.Facet;
-import com.thaiopensource.relaxng.output.xsd.basic.GroupRef;
-import com.thaiopensource.relaxng.output.xsd.basic.Occurs;
-import com.thaiopensource.relaxng.output.xsd.basic.OptionalAttribute;
-import com.thaiopensource.relaxng.output.xsd.basic.Particle;
-import com.thaiopensource.relaxng.output.xsd.basic.ParticleAll;
-import com.thaiopensource.relaxng.output.xsd.basic.ParticleChoice;
-import com.thaiopensource.relaxng.output.xsd.basic.ParticleRepeat;
-import com.thaiopensource.relaxng.output.xsd.basic.ParticleSequence;
-import com.thaiopensource.relaxng.output.xsd.basic.ParticleVisitor;
-import com.thaiopensource.relaxng.output.xsd.basic.Schema;
 import com.thaiopensource.relaxng.output.xsd.basic.SchemaTransformer;
+import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeUnion;
 import com.thaiopensource.relaxng.output.xsd.basic.SimpleType;
 import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeRestriction;
-import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeUnion;
+import com.thaiopensource.relaxng.output.xsd.basic.Facet;
+import com.thaiopensource.relaxng.output.xsd.basic.ParticleAll;
+import com.thaiopensource.relaxng.output.xsd.basic.ParticleVisitor;
+import com.thaiopensource.relaxng.output.xsd.basic.Element;
+import com.thaiopensource.relaxng.output.xsd.basic.ParticleSequence;
+import com.thaiopensource.relaxng.output.xsd.basic.GroupRef;
+import com.thaiopensource.relaxng.output.xsd.basic.ParticleRepeat;
+import com.thaiopensource.relaxng.output.xsd.basic.ParticleChoice;
+import com.thaiopensource.relaxng.output.xsd.basic.Particle;
+import com.thaiopensource.relaxng.output.xsd.basic.Occurs;
+import com.thaiopensource.relaxng.output.xsd.basic.Schema;
+import com.thaiopensource.relaxng.output.xsd.basic.AttributeUseChoice;
+import com.thaiopensource.relaxng.output.xsd.basic.AttributeUse;
 import com.thaiopensource.relaxng.output.xsd.basic.SingleAttributeUse;
-import com.thaiopensource.relaxng.output.xsd.basic.Wildcard;
+import com.thaiopensource.relaxng.output.xsd.basic.Attribute;
+import com.thaiopensource.relaxng.output.xsd.basic.OptionalAttribute;
+import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroup;
+import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroupRef;
+import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroupDefinition;
+import com.thaiopensource.relaxng.output.xsd.basic.AbstractAttributeUseVisitor;
 import com.thaiopensource.relaxng.output.xsd.basic.WildcardAttribute;
+import com.thaiopensource.relaxng.output.xsd.basic.Wildcard;
 import com.thaiopensource.relaxng.output.xsd.basic.WildcardElement;
+import com.thaiopensource.relaxng.output.xsd.basic.ComplexType;
+import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeComplexContent;
+import com.thaiopensource.relaxng.output.common.Name;
+import com.thaiopensource.relaxng.output.common.ErrorReporter;
 import com.thaiopensource.util.Equal;
-import com.thaiopensource.xml.util.Name;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Iterator;
 import java.util.Vector;
+import java.util.Map;
+import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.HashMap;
 
 class Transformer extends SchemaTransformer {
   private final AttributeMapper attributeMapper = new AttributeMapper();
-  private final Set<String> transformedAttributeGroups = new HashSet<String>();
+  private final Set transformedAttributeGroups = new HashSet();
   private final ErrorReporter er;
   private boolean preserveAllGroup = false;
 
@@ -52,31 +53,33 @@ class Transformer extends SchemaTransformer {
     this.er = er;
   }
 
-  public SimpleType visitUnion(SimpleTypeUnion t) {
-    List<SimpleType> list = transformSimpleTypeList(t.getChildren());
+  public Object visitUnion(SimpleTypeUnion t) {
+    List list = transformSimpleTypeList(t.getChildren());
     SimpleType combined = combineEnumeration(t, list);
     if (combined != null)
       return combined;
     return new SimpleTypeUnion(t.getLocation(), t.getAnnotation(), list);
   }
 
-  private static SimpleType combineEnumeration(SimpleTypeUnion orig, List<SimpleType> transformedChildren) {
+  private static SimpleType combineEnumeration(SimpleTypeUnion orig, List transformedChildren) {
     if (transformedChildren.size() < 2)
       return null;
-    SimpleType first = transformedChildren.get(0);
+    Object first = transformedChildren.get(0);
     if (!(first instanceof SimpleTypeRestriction))
       return null;
     String builtinTypeName = ((SimpleTypeRestriction)first).getName();
-    List<Facet> facets = new Vector<Facet>();
-    for (SimpleType child : transformedChildren) {
-      if (!(child instanceof SimpleTypeRestriction))
+    List facets = new Vector();
+    for (Iterator iter = transformedChildren.iterator(); iter.hasNext();) {
+      Object obj = iter.next();
+      if (!(obj instanceof SimpleTypeRestriction))
         return null;
-      SimpleTypeRestriction restriction = (SimpleTypeRestriction)child;
+      SimpleTypeRestriction restriction = (SimpleTypeRestriction)obj;
       if (!restriction.getName().equals(builtinTypeName))
         return null;
       if (restriction.getFacets().isEmpty())
         return null;
-      for (Facet facet : restriction.getFacets()) {
+      for (Iterator facetIter = restriction.getFacets().iterator(); facetIter.hasNext();) {
+        Facet facet = (Facet)facetIter.next();
         if (!facet.getName().equals("enumeration"))
           return null;
         facets.add(facet);
@@ -85,34 +88,34 @@ class Transformer extends SchemaTransformer {
     return new SimpleTypeRestriction(orig.getLocation(), orig.getAnnotation(), builtinTypeName, facets);
   }
 
-  class SequenceDetector implements ParticleVisitor<Boolean> {
-    public Boolean visitElement(Element p) {
+  class SequenceDetector implements ParticleVisitor {
+    public Object visitElement(Element p) {
       return Boolean.FALSE;
     }
 
-    public Boolean visitWildcardElement(WildcardElement p) {
+    public Object visitWildcardElement(WildcardElement p) {
       return Boolean.FALSE;
     }
 
-    public Boolean visitSequence(ParticleSequence p) {
+    public Object visitSequence(ParticleSequence p) {
       return Boolean.TRUE;
     }
 
-    public Boolean visitGroupRef(GroupRef p) {
+    public Object visitGroupRef(GroupRef p) {
       return getSchema().getGroup(p.getName()).getParticle().accept(this);
     }
 
-    public Boolean visitAll(ParticleAll p) {
+    public Object visitAll(ParticleAll p) {
       return Boolean.FALSE;
     }
 
-    public Boolean visitRepeat(ParticleRepeat p) {
+    public Object visitRepeat(ParticleRepeat p) {
       return p.getChild().accept(this);
     }
 
-    public Boolean visitChoice(ParticleChoice p) {
-      for (Particle child : p.getChildren())
-        if (child.accept(this) == Boolean.TRUE)
+    public Object visitChoice(ParticleChoice p) {
+      for (Iterator iter = p.getChildren().iterator(); iter.hasNext();)
+        if (((Particle)iter.next()).accept(this) == Boolean.TRUE)
           return Boolean.TRUE;
       return Boolean.FALSE;
     }
@@ -123,27 +126,27 @@ class Transformer extends SchemaTransformer {
       super(schema);
     }
 
-    public Particle visitGroupRef(GroupRef p) {
+    public Object visitGroupRef(GroupRef p) {
       if (new SequenceDetector().visitGroupRef(p) == Boolean.FALSE)
         return p;
       return getSchema().getGroup(p.getName()).getParticle().accept(this);
     }
 
-    public Particle visitSequence(ParticleSequence p) {
+    public Object visitSequence(ParticleSequence p) {
       return new ParticleChoice(p.getLocation(), p.getAnnotation(), transformParticleList(p.getChildren()));
     }
 
-    public Particle visitRepeat(ParticleRepeat p) {
+    public Object visitRepeat(ParticleRepeat p) {
       return p.getChild().accept(this);
     }
 
-    public Particle visitElement(Element p) {
+    public Object visitElement(Element p) {
       return Transformer.this.visitElement(p);
     }
   }
 
 
-  public Particle visitAll(ParticleAll p) {
+  public Object visitAll(ParticleAll p) {
     if (preserveAllGroup) {
       preserveAllGroup = false;
       return super.visitAll(p);
@@ -157,14 +160,14 @@ class Transformer extends SchemaTransformer {
 
   }
 
-  public AttributeUse visitAttributeGroup(AttributeGroup a) {
-    List<AttributeUse> children = transformAttributeUseList(a.getChildren());
+  public Object visitAttributeGroup(AttributeGroup a) {
+    List children = transformAttributeUseList(a.getChildren());
     Wildcard wildcard = null;
     boolean[] removeWildcard = new boolean[children.size()];
     boolean multipleWildcards = false;
     int wildcardUseIndex = -1;
     for (int i = 0; i < removeWildcard.length; i++) {
-      Wildcard wc = attributeMapper.getAttributeWildcard(children.get(i));
+      Wildcard wc = attributeMapper.getAttributeWildcard((AttributeUse)children.get(i));
       if (wc != null) {
         if (wildcard == null) {
           wildcard = wc;
@@ -196,11 +199,11 @@ class Transformer extends SchemaTransformer {
         return a;
       return new AttributeGroup(a.getLocation(), a.getAnnotation(), children);
     }
-    List<AttributeUse> newChildren = new Vector<AttributeUse>();
+    List newChildren = new Vector();
     for (int i = 0; i < removeWildcard.length; i++) {
-      AttributeUse att = children.get(i);
+      AttributeUse att = (AttributeUse)children.get(i);
       if (removeWildcard[i])
-        att = att.accept(new AttributeTransformer(null, null, false));
+        att = (AttributeUse)att.accept(new AttributeTransformer(null, null, false));
       newChildren.add(att);
     }
     if (wildcardUseIndex == -1)
@@ -208,14 +211,14 @@ class Transformer extends SchemaTransformer {
     return new AttributeGroup(a.getLocation(), a.getAnnotation(), newChildren);
   }
 
-  public AttributeUse visitAttributeUseChoice(AttributeUseChoice a) {
-    List<AttributeUse> children = transformAttributeUseList(a.getChildren());
-    Map<Name, SingleAttributeUse>[] maps = (Map<Name, SingleAttributeUse>[])new Map[children.size()];
+  public Object visitAttributeUseChoice(AttributeUseChoice a) {
+    List children = transformAttributeUseList(a.getChildren());
+    Map[] maps = new Map[children.size()];
     int wildcardUseIndex = -1;
     Wildcard wildcard = null;
     for (int i = 0; i < maps.length; i++) {
-      maps[i] = attributeMapper.getAttributeMap(children.get(i));
-      Wildcard wc = attributeMapper.getAttributeWildcard(children.get(i));
+      maps[i] = attributeMapper.getAttributeMap((AttributeUse)children.get(i));
+      Wildcard wc = attributeMapper.getAttributeWildcard((AttributeUse)children.get(i));
       if (wc != null) {
         if (wildcard == null) {
           wildcard = wc;
@@ -233,21 +236,22 @@ class Transformer extends SchemaTransformer {
         }
       }
     }
-    Set<Name> required = new HashSet<Name>();
-    Set<Name> union = new HashSet<Name>(maps[0].keySet());
+    Set required = new HashSet();
+    Set union = new HashSet(maps[0].keySet());
     for (int i = 1; i < maps.length; i++)
       union.addAll(maps[i].keySet());
-    Set<Name>[] retainAttributeNames = (Set<Name>[])new Set[children.size()];
+    Set[] retainAttributeNames = new Set[children.size()];
     for (int i = 0; i < retainAttributeNames.length; i++)
-      retainAttributeNames[i] = new HashSet<Name>();
-    List<AttributeUse> newChildren = new Vector<AttributeUse>();
-    for (Name name : union) {
+      retainAttributeNames[i] = new HashSet();
+    List newChildren = new Vector();
+    for (Iterator iter = union.iterator(); iter.hasNext();) {
+      Name name = (Name)iter.next();
       if (wildcard == null || !wildcard.contains(name)) {
         SingleAttributeUse[] uses = new SingleAttributeUse[maps.length];
         int useIndex = -1;
         boolean isRequired = true;
         for (int i = 0; i < maps.length; i++) {
-          uses[i] = maps[i].get(name);
+          uses[i] = (SingleAttributeUse)maps[i].get(name);
           if (uses[i] != null) {
             if (useIndex >= 0)
               useIndex = -2;
@@ -266,14 +270,14 @@ class Transformer extends SchemaTransformer {
         if (useIndex >= 0)
           retainAttributeNames[useIndex].add(name);
         else {
-          List<SimpleType> choices = new Vector<SimpleType>();
+          List choices = new Vector();
           for (int i = 0; i < uses.length; i++)
             if (uses[i] != null && uses[i].getType() != null)
               choices.add(uses[i].getType());
           Attribute tem = new Attribute(a.getLocation(),
                                         null,
                                         name,
-                                        new SimpleTypeUnion(a.getLocation(), null, choices).accept(this));
+                                        (SimpleType)new SimpleTypeUnion(a.getLocation(), null, choices).accept(this));
           if (isRequired)
             newChildren.add(tem);
           else
@@ -282,9 +286,9 @@ class Transformer extends SchemaTransformer {
       }
     }
     for (int i = 0; i < retainAttributeNames.length; i++) {
-      AttributeUse tem = children.get(i).accept(new AttributeTransformer(retainAttributeNames[i],
-                                                                                       required,
-                                                                                       i == wildcardUseIndex));
+      Object tem = ((AttributeUse)children.get(i)).accept(new AttributeTransformer(retainAttributeNames[i],
+                                                                                   required,
+                                                                                   i == wildcardUseIndex));
       if (!tem.equals(AttributeGroup.EMPTY))
         newChildren.add(tem);
     }
@@ -311,47 +315,46 @@ class Transformer extends SchemaTransformer {
   }
 
   static class AttributeInfo {
-    final Map<Name, SingleAttributeUse> map;
+    final Map map;
     final Wildcard wildcard;
-    final static Map<Name, SingleAttributeUse> EMPTY_MAP = Collections.emptyMap();
 
-    AttributeInfo(Map<Name, SingleAttributeUse> map, Wildcard wildcard) {
+    AttributeInfo(Map map, Wildcard wildcard) {
       this.map = map;
       this.wildcard = wildcard;
     }
   }
 
-  class AttributeMapper extends AbstractAttributeUseVisitor<AttributeInfo> {
-    private final Map<AttributeUse, AttributeInfo> cache = new HashMap<AttributeUse, AttributeInfo>();
+  class AttributeMapper extends AbstractAttributeUseVisitor {
+    private final Map cache = new HashMap();
 
-    Map<Name, SingleAttributeUse> getAttributeMap(AttributeUse a) {
+    Map getAttributeMap(AttributeUse a) {
       return getAttributeInfo(a).map;
     }
 
     Wildcard getAttributeWildcard(AttributeUse a) {
-      return getAttributeInfo(a).wildcard;
+      return  getAttributeInfo(a).wildcard;
     }
 
     private AttributeInfo getAttributeInfo(AttributeUse a) {
-      AttributeInfo info = cache.get(a);
+      AttributeInfo info = (AttributeInfo)cache.get(a);
       if (info == null) {
-        info = a.accept(this);
+        info = (AttributeInfo)a.accept(this);
         cache.put(a, info);
       }
       return info;
     }
 
-    public AttributeInfo visitAttribute(Attribute a) {
-      Map<Name, SingleAttributeUse> map = new HashMap<Name, SingleAttributeUse>();
+    public Object visitAttribute(Attribute a) {
+      Map map = new HashMap();
       map.put(a.getName(), a);
       return new AttributeInfo(map, null);
     }
 
-    public AttributeInfo visitAttributeGroup(AttributeGroup a) {
-      Map<Name, SingleAttributeUse> map = new HashMap<Name, SingleAttributeUse>();
+    public Object visitAttributeGroup(AttributeGroup a) {
+      Map map = new HashMap();
       Wildcard wildcard = null;
-      for (AttributeUse child : a.getChildren()) {
-        AttributeInfo info = getAttributeInfo(child);
+      for (Iterator iter = a.getChildren().iterator(); iter.hasNext();) {
+        AttributeInfo info = getAttributeInfo((AttributeUse)iter.next());
         if (info.wildcard != null)
           wildcard = info.wildcard;
         map.putAll(info.map);
@@ -359,33 +362,33 @@ class Transformer extends SchemaTransformer {
       return new AttributeInfo(map, wildcard);
     }
 
-    public AttributeInfo visitOptionalAttribute(OptionalAttribute a) {
-      Map<Name, SingleAttributeUse> map = new HashMap<Name, SingleAttributeUse>();
+    public Object visitOptionalAttribute(OptionalAttribute a) {
+      Map map = new HashMap();
       map.put(a.getAttribute().getName(), a);
       return new AttributeInfo(map, null);
     }
 
-    public AttributeInfo visitAttributeGroupRef(AttributeGroupRef a) {
+    public Object visitAttributeGroupRef(AttributeGroupRef a) {
       return getAttributeInfo(getTransformedAttributeGroup(a.getName()));
     }
 
-    public AttributeInfo visitWildcardAttribute(WildcardAttribute a) {
-      return new AttributeInfo(AttributeInfo.EMPTY_MAP, a.getWildcard());
+    public Object visitWildcardAttribute(WildcardAttribute a) {
+      return new AttributeInfo(Collections.EMPTY_MAP, a.getWildcard());
     }
   }
 
-  class AttributeTransformer extends AbstractAttributeUseVisitor<AttributeUse> {
-    private final Set<Name> retainNames;
-    private final Set<Name> requiredNames;
+  class AttributeTransformer extends AbstractAttributeUseVisitor {
+    private final Set retainNames;
+    private final Set requiredNames;
     private final boolean retainWildcard;
 
-    public AttributeTransformer(Set<Name> retainNames, Set<Name> requiredNames, boolean retainWildcard) {
+    public AttributeTransformer(Set retainNames, Set requiredNames, boolean retainWildcard) {
       this.retainNames = retainNames;
       this.requiredNames = requiredNames;
       this.retainWildcard = retainWildcard;
     }
 
-    public AttributeUse visitAttribute(Attribute a) {
+    public Object visitAttribute(Attribute a) {
       if (retainNames != null && !retainNames.contains(a.getName()))
         return AttributeGroup.EMPTY;
       if (requiredNames != null && !requiredNames.contains(a.getName()))
@@ -393,19 +396,19 @@ class Transformer extends SchemaTransformer {
       return a;
     }
 
-    public AttributeUse visitOptionalAttribute(OptionalAttribute a) {
+    public Object visitOptionalAttribute(OptionalAttribute a) {
       if (retainNames != null && !retainNames.contains(a.getName()))
         return AttributeGroup.EMPTY;
       return a;
     }
 
-    public AttributeUse visitWildcardAttribute(WildcardAttribute a) {
+    public Object visitWildcardAttribute(WildcardAttribute a) {
       if (!retainWildcard)
         return AttributeGroup.EMPTY;
       return a;
     }
 
-    public AttributeUse visitAttributeGroupRef(AttributeGroupRef a) {
+    public Object visitAttributeGroupRef(AttributeGroupRef a) {
       AttributeUse refed = getTransformedAttributeGroup(a.getName());
       if (isOk(attributeMapper.getAttributeMap(refed))
           && (retainWildcard || attributeMapper.getAttributeWildcard(refed) == null))
@@ -413,10 +416,11 @@ class Transformer extends SchemaTransformer {
       return refed.accept(this);
     }
 
-    private boolean isOk(Map<Name, SingleAttributeUse> map) {
-      for (Map.Entry<Name, SingleAttributeUse> entry : map.entrySet()) {
-        Name name = entry.getKey();
-        SingleAttributeUse use = entry.getValue();
+    private boolean isOk(Map map) {
+      for (Iterator iter = map.entrySet().iterator(); iter.hasNext();) {
+        Map.Entry entry = (Map.Entry)iter.next();
+        Name name = (Name)entry.getKey();
+        SingleAttributeUse use = (SingleAttributeUse)entry.getValue();
         if (retainNames != null && !retainNames.contains(name))
           return false;
         if (requiredNames != null && !use.isOptional() && !requiredNames.contains(name))
@@ -425,21 +429,21 @@ class Transformer extends SchemaTransformer {
       return true;
     }
 
-    public AttributeUse visitAttributeGroup(AttributeGroup a) {
-      List<AttributeUse> children = a.getChildren();
-      List<AttributeUse> transformedChildren = null;
+    public Object visitAttributeGroup(AttributeGroup a) {
+      List children = a.getChildren();
+      List transformedChildren = null;
       for (int i = 0, len = children.size(); i < len; i++) {
-        AttributeUse child = children.get(i).accept(this);
+        Object obj = ((AttributeUse)children.get(i)).accept(this);
         if (transformedChildren != null) {
-          if (!child.equals(AttributeGroup.EMPTY))
-            transformedChildren.add(child);
+          if (!obj.equals(AttributeGroup.EMPTY))
+            transformedChildren.add(obj);
         }
-        else if (child != children.get(i)) {
-          transformedChildren = new Vector<AttributeUse>();
+        else if (obj != children.get(i)) {
+          transformedChildren = new Vector();
           for (int j = 0; j < i; j++)
             transformedChildren.add(children.get(j));
-          if (!child.equals(AttributeGroup.EMPTY))
-            transformedChildren.add(child);
+          if (!obj.equals(AttributeGroup.EMPTY))
+            transformedChildren.add(obj);
         }
       }
       if (transformedChildren == null)
@@ -455,13 +459,13 @@ class Transformer extends SchemaTransformer {
   private AttributeUse getTransformedAttributeGroup(String name) {
     AttributeGroupDefinition def = getSchema().getAttributeGroup(name);
     if (!transformedAttributeGroups.contains(name)) {
-      def.setAttributeUses(def.getAttributeUses().accept(this));
+      def.setAttributeUses((AttributeUse)def.getAttributeUses().accept(this));
       transformedAttributeGroups.add(name);
     }
     return def.getAttributeUses();
   }
 
-  public Particle visitElement(Element p) {
+  public Object visitElement(Element p) {
     if (containsLegalAllGroup(p))
       preserveAllGroup = true;
     return super.visitElement(p);
@@ -475,7 +479,8 @@ class Transformer extends SchemaTransformer {
     if (!(particle instanceof ParticleAll))
       return false;
     String ns = p.getName().getNamespaceUri();
-    for (Particle child : ((ParticleAll)particle).getChildren()) {
+    for (Iterator iter = ((ParticleAll)particle).getChildren().iterator(); iter.hasNext();) {
+      Particle child = (Particle)iter.next();
       if (child instanceof ParticleRepeat) {
         Occurs occur = ((ParticleRepeat)child).getOccurs();
         if (occur.getMin() > 1 || occur.getMax() > 1)

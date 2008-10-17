@@ -1,27 +1,28 @@
 package com.thaiopensource.relaxng.output.xsd;
 
-import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroup;
-import com.thaiopensource.relaxng.output.xsd.basic.ComplexType;
-import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeComplexContent;
-import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeNotAllowedContent;
-import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeSimpleContent;
-import com.thaiopensource.relaxng.output.xsd.basic.Element;
-import com.thaiopensource.relaxng.output.xsd.basic.Particle;
 import com.thaiopensource.relaxng.output.xsd.basic.Schema;
-import com.thaiopensource.relaxng.output.xsd.basic.SimpleType;
-import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeRef;
+import com.thaiopensource.relaxng.output.xsd.basic.ComplexType;
+import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeNotAllowedContent;
+import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeComplexContent;
+import com.thaiopensource.relaxng.output.xsd.basic.ComplexTypeSimpleContent;
+import com.thaiopensource.relaxng.output.xsd.basic.AttributeGroup;
+import com.thaiopensource.relaxng.output.xsd.basic.Particle;
 import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeRestriction;
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.xsd.basic.SimpleTypeRef;
+import com.thaiopensource.relaxng.output.xsd.basic.SimpleType;
+import com.thaiopensource.relaxng.output.xsd.basic.Element;
+import com.thaiopensource.relaxng.output.common.Name;
 
+import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Iterator;
 
 class AbstractElementTypeSelector {
   private final Schema schema;
   private final NamespaceManager nsm;
   private final ComplexTypeSelector complexTypeSelector;
-  private final Map<Name, ComplexType> abstractElementComplexTypeMap = new HashMap<Name, ComplexType>();
+  private final Map abstractElementComplexTypeMap = new HashMap();
   private final ComplexType urType = new ComplexTypeNotAllowedContent();
 
   AbstractElementTypeSelector(Schema schema, NamespaceManager nsm, ComplexTypeSelector complexTypeSelector) {
@@ -31,7 +32,7 @@ class AbstractElementTypeSelector {
   }
 
   ComplexType getAbstractElementType(Name name) {
-    ComplexType ct = abstractElementComplexTypeMap.get(name);
+    ComplexType ct = (ComplexType)abstractElementComplexTypeMap.get(name);
     if (ct == null) {
       ct = computeAbstractElementType(name);
       if (ct == null)
@@ -44,12 +45,12 @@ class AbstractElementTypeSelector {
   }
 
   private ComplexType computeAbstractElementType(Name name) {
-    List<Name> members = nsm.getAbstractElementSubstitutionGroupMembers(name);
+    List members = nsm.getAbstractElementSubstitutionGroupMembers(name);
     if (members == null)
       return null;
     ComplexType commonType = null;
-    for (Name member : members) {
-      ComplexType ct = getElementType(member, nsm);
+    for (Iterator iter = members.iterator(); iter.hasNext();) {
+      ComplexType ct = getElementType((Name)iter.next(), nsm);
       if (ct == null)
         return null;
       if (commonType == null)

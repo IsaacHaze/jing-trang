@@ -31,9 +31,8 @@
   <mkdir dir="${build.dir}/classes"/>
   <javac srcdir="src:${dtdinst.src}:${jing.src}:${jing.gen.src}"
          destdir="${build.dir}/classes"
-         classpath="${lib.dir}/xercesImpl.jar"
-         excludes="${jing.excludes},com/thaiopensource/datatype/xsd/regex/jdk1_4/gen/*.java"
-	 source="1.5"/>
+         classpath="${lib.dir}/xercesImpl.jar:${lib.dir}/regex.jar"
+         excludes="${jing.excludes},com/thaiopensource/datatype/xsd/regex/jdk1_4/gen/*.java"/>
 </target>
 
 <target name="jar" depends="compile">
@@ -60,9 +59,9 @@ Main-Class: com/thaiopensource/relaxng/translate/Driver
   </jing>
   <delete dir="${build.dir}/compact-test"/>
   <mkdir dir="${build.dir}/compact-test"/>
-  <xslt basedir="test" destdir="${build.dir}/compact-test" includes="compacttest.xml" extension=".stamp" style="test/compactsplit.xsl">
+  <style basedir="test" destdir="${build.dir}/compact-test" includes="compacttest.xml" extension=".stamp" style="test/compactsplit.xsl">
     <param name="dir" expression="${build.dir}/compact-test"/>
-  </xslt>
+  </style>
 </target>
 
 <target name="check-compact-split">
@@ -71,19 +70,19 @@ Main-Class: com/thaiopensource/relaxng/translate/Driver
   </uptodate>
 </target>
 
-<target name="xsd-split" depends="init,check-xsd-split" unless="trang-xsd-split-not-required">
+<target name="xsd-split" depends="init,check-xsd-split" unless="xsd-split-not-required">
   <jing rngfile="test/toxsdtest.rnc" compactsyntax="yes">
     <fileset dir="test" includes="toxsdtest.xml"/>
   </jing>
   <delete dir="${build.dir}/xsd-test"/>
   <mkdir dir="${build.dir}/xsd-test"/>
-  <xslt basedir="test" destdir="${build.dir}/xsd-test" includes="toxsdtest.xml" extension=".stamp" style="test/compactsplit.xsl">
+  <style basedir="test" destdir="${build.dir}/xsd-test" includes="toxsdtest.xml" extension=".stamp" style="test/compactsplit.xsl">
     <param name="dir" expression="${build.dir}/xsd-test"/>
-  </xslt>
+  </style>
 </target>
 
 <target name="check-xsd-split">
-  <uptodate property="trang-xsd-split-not-required" targetfile="${build.dir}/xsd-test/toxsdtest.stamp">
+  <uptodate property="xsd-split-not-required" targetfile="${build.dir}/xsd-test/toxsdtest.stamp">
     <srcfiles dir="test" includes="toxsdtest.xml,compactsplit.xsl"/>
   </uptodate>
 </target>

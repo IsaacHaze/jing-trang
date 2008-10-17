@@ -1,20 +1,21 @@
 package com.thaiopensource.relaxng.output.dtd;
 
-import com.thaiopensource.relaxng.edit.NameClass;
 import com.thaiopensource.relaxng.edit.NameNameClass;
+import com.thaiopensource.relaxng.edit.NameClass;
 import com.thaiopensource.xml.util.WellKnownNamespaces;
 
-import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.HashMap;
 
 class NamespaceManager {
   // map namespace URIs to non-empty prefix
-  private final Map<String, String> namespaceUriMap = new HashMap<String, String>();
+  private final Map namespaceUriMap = new HashMap();
   private String defaultNamespaceUri = null;
-  private final Set<String> usedPrefixes = new HashSet<String>();
-  private final Set<String> unassignedNamespaceUris = new HashSet<String>();
+  private final Set usedPrefixes = new HashSet();
+  private final Set unassignedNamespaceUris = new HashSet();
 
   NamespaceManager() {
     usedPrefixes.add("xml");
@@ -22,7 +23,7 @@ class NamespaceManager {
   }
 
   String getPrefixForNamespaceUri(String ns) {
-    return namespaceUriMap.get(ns);
+    return (String)namespaceUriMap.get(ns);
   }
 
   String getDefaultNamespaceUri() {
@@ -33,8 +34,9 @@ class NamespaceManager {
     if (defaultNamespaceUri == null)
       defaultNamespaceUri = "";
     int n = 0;
-    for (String ns : unassignedNamespaceUris) {
-      for (; ;) {
+    for (Iterator iter = unassignedNamespaceUris.iterator(); iter.hasNext();) {
+      String ns = (String)iter.next();
+      for (;;) {
         ++n;
         String prefix = "ns" + Integer.toString(n);
         if (!usedPrefixes.contains(prefix)) {
@@ -52,7 +54,7 @@ class NamespaceManager {
         defaultNamespaceUri = "";
       return;
     }
-    String assignedPrefix = namespaceUriMap.get(ns);
+    String assignedPrefix = (String)namespaceUriMap.get(ns);
     if (assignedPrefix != null)
       return;
     String prefix = nc.getPrefix();

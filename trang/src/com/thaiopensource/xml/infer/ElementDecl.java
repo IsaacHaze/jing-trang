@@ -1,7 +1,7 @@
 package com.thaiopensource.xml.infer;
 
 
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -9,9 +9,9 @@ import java.util.HashMap;
 public class ElementDecl {
   private Particle contentModel;
   private Name datatype;
-  private final Map<Name, AttributeDecl> attributeDecls = new HashMap<Name, AttributeDecl>();
+  private final Map attributeDecls = new HashMap();
 
-  public Map<Name, AttributeDecl> getAttributeDecls() {
+  public Map getAttributeDecls() {
     return attributeDecls;
   }
 

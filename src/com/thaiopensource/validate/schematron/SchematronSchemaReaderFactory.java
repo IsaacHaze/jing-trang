@@ -4,11 +4,10 @@ import com.thaiopensource.validate.IncorrectSchemaException;
 import com.thaiopensource.validate.Option;
 import com.thaiopensource.validate.SchemaReader;
 import com.thaiopensource.validate.SchemaReaderFactory;
-import com.thaiopensource.validate.prop.schematron.SchematronProperty;
 
 import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
-import javax.xml.transform.sax.SAXTransformerFactory;
 
 public abstract class SchematronSchemaReaderFactory implements SchemaReaderFactory {
   public SchemaReader createSchemaReader(String namespaceUri) {
@@ -27,5 +26,5 @@ public abstract class SchematronSchemaReaderFactory implements SchemaReaderFacto
     return SchematronProperty.getOption(uri);
   }
 
-  public abstract SAXTransformerFactory newTransformerFactory();
+  public abstract TransformerFactory newTransformerFactory();
 }

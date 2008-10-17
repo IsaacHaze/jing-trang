@@ -47,7 +47,7 @@ public class AttributeAnnotation extends SourceObject {
     this.value = value;
   }
 
-  public <T> T accept(AttributeAnnotationVisitor<T> visitor) {
+  public Object accept(AttributeAnnotationVisitor visitor) {
     return visitor.visitAttribute(this);
   }
 }

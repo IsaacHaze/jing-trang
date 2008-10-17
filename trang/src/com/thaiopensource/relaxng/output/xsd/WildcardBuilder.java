@@ -6,21 +6,20 @@ import com.thaiopensource.relaxng.edit.NameClass;
 import com.thaiopensource.relaxng.edit.NameClassVisitor;
 import com.thaiopensource.relaxng.edit.NameNameClass;
 import com.thaiopensource.relaxng.edit.NsNameNameClass;
-import com.thaiopensource.util.VoidValue;
+import com.thaiopensource.relaxng.output.common.Name;
 import com.thaiopensource.relaxng.output.xsd.basic.Wildcard;
-import com.thaiopensource.xml.util.Name;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Collections;
 
-class WildcardBuilder implements NameClassVisitor<VoidValue> {
+class WildcardBuilder implements NameClassVisitor {
   private boolean inExcept = false;
   private final String inheritedNamespace;
   private Wildcard wildcard = null;
-  private Set<Name> excludedNames;
-  private Set<String> namespaces;
+  private Set excludedNames;
+  private Set namespaces;
   private String inNs = null;
 
   static Wildcard createWildcard(NameClass nc, String inheritedNamespace) {
@@ -40,37 +39,37 @@ class WildcardBuilder implements NameClassVisitor<VoidValue> {
     this.inheritedNamespace = inheritedNamespace;
   }
 
-  public VoidValue visitChoice(ChoiceNameClass nc) {
-    List<NameClass> list = nc.getChildren();
+  public Object visitChoice(ChoiceNameClass nc) {
+    List list = nc.getChildren();
     for (int i = 0, len = list.size(); i < len; i++)
-      (list.get(i)).accept(this);
-    return VoidValue.VOID;
+      ((NameClass)list.get(i)).accept(this);
+    return null;
   }
 
-  public VoidValue visitAnyName(AnyNameNameClass nc) {
+  public Object visitAnyName(AnyNameNameClass nc) {
     if (!inExcept) {
       if (nc.getExcept() != null) {
-        namespaces = new HashSet<String>();
-        excludedNames = new HashSet<Name>();
+        namespaces = new HashSet();
+        excludedNames = new HashSet();
         inExcept = true;
         nc.getExcept().accept(this);
         inExcept = false;
       }
       else {
-        namespaces = Collections.emptySet();
-        excludedNames = Collections.emptySet();
+        namespaces = Collections.EMPTY_SET;
+        excludedNames = Collections.EMPTY_SET;
       }
       combineWildcard(new Wildcard(false, namespaces, excludedNames));
     }
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitNsName(NsNameNameClass nc) {
+  public Object visitNsName(NsNameNameClass nc) {
     String ns = resolve(nc.getNs());
     if (!inExcept) {
       if (nc.getExcept() != null) {
         namespaces = null;
-        excludedNames = new HashSet<Name>();
+        excludedNames = new HashSet();
         inNs = ns;
         inExcept = true;
         nc.getExcept().accept(this);
@@ -78,23 +77,23 @@ class WildcardBuilder implements NameClassVisitor<VoidValue> {
         inNs = null;
       }
       else
-        excludedNames = Collections.emptySet();
-      namespaces = new HashSet<String>();
+        excludedNames = Collections.EMPTY_SET;
+      namespaces = new HashSet();
       namespaces.add(ns);
       combineWildcard(new Wildcard(true, namespaces, excludedNames));
     }
     else if (inNs == null)
       namespaces.add(ns);
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitName(NameNameClass nc) {
+  public Object visitName(NameNameClass nc) {
     if (inExcept) {
       String ns = resolve(nc.getNamespaceUri());
       if (inNs == null || inNs.equals(ns))
         excludedNames.add(new Name(ns, nc.getLocalName()));
     }
-    return VoidValue.VOID;
+    return null;
   }
 
   private String resolve(String ns) {

@@ -5,11 +5,11 @@ import com.thaiopensource.relaxng.edit.SourceLocation;
 import java.util.List;
 
 public class ParticleAll extends ParticleGroup {
-  public ParticleAll(SourceLocation location, Annotation annotation, List<Particle> children) {
+  public ParticleAll(SourceLocation location, Annotation annotation, List children) {
     super(location, annotation, children);
   }
 
-  public <T> T accept(ParticleVisitor<T> visitor) {
+  public Object accept(ParticleVisitor visitor) {
     return visitor.visitAll(this);
   }
 }

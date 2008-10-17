@@ -1,5 +1,6 @@
 package com.thaiopensource.relaxng.edit;
 
+import com.thaiopensource.relaxng.parse.ParsedElementAnnotation;
 import com.thaiopensource.relaxng.parse.Context;
 
 import java.util.List;
@@ -10,19 +11,19 @@ public class ElementAnnotation extends AnnotationChild {
   private String localName;
   private String prefix;
   private Context context;
-  private final List<AttributeAnnotation> attributes = new Vector<AttributeAnnotation>();
-  private final List<AnnotationChild> children = new Vector<AnnotationChild>();
+  private final List attributes = new Vector();
+  private final List children = new Vector();
 
   public ElementAnnotation(String namespaceUri, String localName) {
     this.namespaceUri = namespaceUri;
     this.localName = localName;
   }
 
-  public List<AttributeAnnotation> getAttributes() {
+  public List getAttributes() {
     return attributes;
   }
 
-  public List<AnnotationChild> getChildren() {
+  public List getChildren() {
     return children;
   }
 
@@ -58,17 +59,17 @@ public class ElementAnnotation extends AnnotationChild {
     this.context = context;
   }
 
-  public <T> T accept(AnnotationChildVisitor<T> visitor) {
+  public Object accept(AnnotationChildVisitor visitor) {
     return visitor.visitElement(this);
   }
 
-  public void attributesAccept(AttributeAnnotationVisitor<?> visitor) {
-    for (AttributeAnnotation a : attributes)
-      a.accept(visitor);
+  public void attributesAccept(AttributeAnnotationVisitor visitor) {
+    for (int i = 0, len = attributes.size();  i < len; i++)
+      ((AttributeAnnotation)attributes.get(i)).accept(visitor);
   }
 
-  public void childrenAccept(AnnotationChildVisitor<?> visitor) {
-    for (AnnotationChild c : children)
-      c.accept(visitor);
+  public void childrenAccept(AnnotationChildVisitor visitor) {
+    for (int i = 0, len = children.size();  i < len; i++)
+      ((AnnotationChild)children.get(i)).accept(visitor);
   }
 }

@@ -5,10 +5,10 @@ import com.thaiopensource.util.PropertyMapBuilder;
 import com.thaiopensource.util.Localizer;
 import com.thaiopensource.validate.ValidateProperty;
 import com.thaiopensource.validate.ValidationDriver;
-import com.thaiopensource.validate.prop.rng.RngProperty;
+import com.thaiopensource.validate.rng.RngProperty;
 import com.thaiopensource.xml.sax.ErrorHandlerImpl;
-import com.thaiopensource.datatype.DatatypeLibraryLoader;
 import org.xml.sax.SAXException;
+import org.relaxng.datatype.helpers.DatatypeLibraryLoader;
 
 import java.io.BufferedWriter;
 import java.io.File;

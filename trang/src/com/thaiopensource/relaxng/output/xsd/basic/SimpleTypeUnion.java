@@ -6,18 +6,18 @@ import java.util.List;
 import java.util.Collections;
 
 public class SimpleTypeUnion extends SimpleType {
-  private final List<SimpleType> children;
+  private final List children;
 
-  public SimpleTypeUnion(SourceLocation location, Annotation annotation, List<SimpleType> children) {
+  public SimpleTypeUnion(SourceLocation location, Annotation annotation, List children) {
     super(location, annotation);
     this.children = Collections.unmodifiableList(children);
   }
 
-  public List<SimpleType> getChildren() {
+  public List getChildren() {
     return children;
   }
 
-  public <T> T accept(SimpleTypeVisitor<T> visitor) {
+  public Object accept(SimpleTypeVisitor visitor) {
     return visitor.visitUnion(this);
   }
 

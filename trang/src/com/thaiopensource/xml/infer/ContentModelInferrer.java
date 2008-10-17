@@ -1,6 +1,6 @@
 package com.thaiopensource.xml.infer;
 
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 
 import java.util.Set;
 
@@ -11,7 +11,7 @@ public abstract class ContentModelInferrer {
 
   public abstract Particle inferContentModel();
 
-  public abstract Set<Name> getElementNames();
+  public abstract Set getElementNames();
 
   public static ContentModelInferrer createContentModelInferrer() {
     return new ContentModelInferrerImpl();

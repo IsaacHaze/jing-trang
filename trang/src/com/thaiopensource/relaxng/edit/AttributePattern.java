@@ -5,7 +5,7 @@ public class AttributePattern extends NameClassedPattern {
     super(nameClass, child);
   }
 
-  public <T> T accept(PatternVisitor<T> visitor) {
+  public Object accept(PatternVisitor visitor) {
     return visitor.visitAttribute(this);
   }
 }

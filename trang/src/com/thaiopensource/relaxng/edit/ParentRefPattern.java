@@ -5,7 +5,7 @@ public class ParentRefPattern extends AbstractRefPattern {
     super(name);
   }
 
-  public <T> T accept(PatternVisitor<T> visitor) {
+  public Object accept(PatternVisitor visitor) {
     return visitor.visitParentRef(this);
   }
 }

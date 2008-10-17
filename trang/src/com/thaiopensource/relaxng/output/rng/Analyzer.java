@@ -1,42 +1,41 @@
 package com.thaiopensource.relaxng.output.rng;
 
 import com.thaiopensource.relaxng.edit.AbstractVisitor;
-import com.thaiopensource.relaxng.edit.Annotated;
-import com.thaiopensource.relaxng.edit.AnnotationChild;
-import com.thaiopensource.relaxng.edit.AnyNameNameClass;
-import com.thaiopensource.relaxng.edit.AttributeAnnotation;
-import com.thaiopensource.relaxng.edit.AttributePattern;
-import com.thaiopensource.relaxng.edit.ChoiceNameClass;
-import com.thaiopensource.relaxng.edit.Component;
-import com.thaiopensource.relaxng.edit.CompositePattern;
-import com.thaiopensource.relaxng.edit.Container;
-import com.thaiopensource.relaxng.edit.DataPattern;
 import com.thaiopensource.relaxng.edit.DefineComponent;
 import com.thaiopensource.relaxng.edit.DivComponent;
-import com.thaiopensource.relaxng.edit.ElementAnnotation;
-import com.thaiopensource.relaxng.edit.ExternalRefPattern;
-import com.thaiopensource.relaxng.edit.GrammarPattern;
 import com.thaiopensource.relaxng.edit.IncludeComponent;
-import com.thaiopensource.relaxng.edit.NameClass;
-import com.thaiopensource.relaxng.edit.NameClassedPattern;
-import com.thaiopensource.relaxng.edit.NameNameClass;
-import com.thaiopensource.relaxng.edit.NsNameNameClass;
-import com.thaiopensource.relaxng.edit.Param;
-import com.thaiopensource.relaxng.edit.Pattern;
+import com.thaiopensource.relaxng.edit.GrammarPattern;
+import com.thaiopensource.relaxng.edit.Container;
+import com.thaiopensource.relaxng.edit.Component;
 import com.thaiopensource.relaxng.edit.UnaryPattern;
+import com.thaiopensource.relaxng.edit.CompositePattern;
+import com.thaiopensource.relaxng.edit.Pattern;
+import com.thaiopensource.relaxng.edit.NameClassedPattern;
+import com.thaiopensource.relaxng.edit.ChoiceNameClass;
+import com.thaiopensource.relaxng.edit.NameClass;
 import com.thaiopensource.relaxng.edit.ValuePattern;
-import com.thaiopensource.util.VoidValue;
+import com.thaiopensource.relaxng.edit.DataPattern;
+import com.thaiopensource.relaxng.edit.NameNameClass;
+import com.thaiopensource.relaxng.edit.AnyNameNameClass;
+import com.thaiopensource.relaxng.edit.NsNameNameClass;
+import com.thaiopensource.relaxng.edit.Annotated;
+import com.thaiopensource.relaxng.edit.AttributeAnnotation;
+import com.thaiopensource.relaxng.edit.AnnotationChild;
+import com.thaiopensource.relaxng.edit.ElementAnnotation;
+import com.thaiopensource.relaxng.edit.Param;
+import com.thaiopensource.relaxng.edit.AttributePattern;
 import com.thaiopensource.relaxng.parse.Context;
 import com.thaiopensource.xml.util.WellKnownNamespaces;
 
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.Enumeration;
 
 class Analyzer extends AbstractVisitor {
 
-  private VoidValue visitAnnotated(Annotated anno) {
+  private Object visitAnnotated(Annotated anno) {
     if (anno.getAttributeAnnotations().size() > 0
         || anno.getChildElementAnnotations().size() > 0
         || anno.getFollowingElementAnnotations().size() > 0)
@@ -44,20 +43,20 @@ class Analyzer extends AbstractVisitor {
     visitAnnotationAttributes(anno.getAttributeAnnotations());
     visitAnnotationChildren(anno.getChildElementAnnotations());
     visitAnnotationChildren(anno.getFollowingElementAnnotations());
-    return VoidValue.VOID;
+    return null;
   }
 
-  private void visitAnnotationAttributes(List<AttributeAnnotation> list) {
+  private void visitAnnotationAttributes(List list) {
     for (int i = 0, len = list.size(); i < len; i++) {
-      AttributeAnnotation att = list.get(i);
+      AttributeAnnotation att = (AttributeAnnotation)list.get(i);
       if (att.getNamespaceUri().length() != 0)
         noteNs(att.getPrefix(), att.getNamespaceUri());
     }
   }
 
-  private void visitAnnotationChildren(List<AnnotationChild> list) {
+  private void visitAnnotationChildren(List list) {
     for (int i = 0, len = list.size(); i < len; i++) {
-      AnnotationChild ac = list.get(i);
+      AnnotationChild ac = (AnnotationChild)list.get(i);
       if (ac instanceof ElementAnnotation) {
         ElementAnnotation elem = (ElementAnnotation)ac;
         if (elem.getPrefix() != null)
@@ -68,57 +67,56 @@ class Analyzer extends AbstractVisitor {
     }
   }
 
-  public VoidValue visitPattern(Pattern p) {
+  public Object visitPattern(Pattern p) {
     return visitAnnotated(p);
   }
 
-  public VoidValue visitDefine(DefineComponent c) {
+  public Object visitDefine(DefineComponent c) {
     visitAnnotated(c);
     return c.getBody().accept(this);
   }
 
-  public VoidValue visitDiv(DivComponent c) {
+  public Object visitDiv(DivComponent c) {
     visitAnnotated(c);
     return visitContainer(c);
   }
 
-  public VoidValue visitInclude(IncludeComponent c) {
+  public Object visitInclude(IncludeComponent c) {
     visitAnnotated(c);
-    noteInheritNs(c.getNs());
     return visitContainer(c);
   }
 
-  public VoidValue visitGrammar(GrammarPattern p) {
+  public Object visitGrammar(GrammarPattern p) {
     visitAnnotated(p);
     return visitContainer(p);
   }
 
-  private VoidValue visitContainer(Container c) {
-    List<Component> list = c.getComponents();
+  private Object visitContainer(Container c) {
+    List list = c.getComponents();
     for (int i = 0, len = list.size(); i < len; i++)
-      (list.get(i)).accept(this);
-    return VoidValue.VOID;
+      ((Component)list.get(i)).accept(this);
+    return null;
   }
 
-  public VoidValue visitUnary(UnaryPattern p) {
+  public Object visitUnary(UnaryPattern p) {
     visitAnnotated(p);
     return p.getChild().accept(this);
   }
 
-  public VoidValue visitComposite(CompositePattern p) {
+  public Object visitComposite(CompositePattern p) {
     visitAnnotated(p);
-    List<Pattern> list = p.getChildren();
+    List list = p.getChildren();
     for (int i = 0, len = list.size(); i < len; i++)
-      (list.get(i)).accept(this);
-    return VoidValue.VOID;
+      ((Pattern)list.get(i)).accept(this);
+    return null;
   }
 
-  public VoidValue visitNameClassed(NameClassedPattern p) {
+  public Object visitNameClassed(NameClassedPattern p) {
     p.getNameClass().accept(this);
     return visitUnary(p);
   }
 
-  public VoidValue visitAttribute(AttributePattern p) {
+  public Object visitAttribute(AttributePattern p) {
     NameClass nc = p.getNameClass();
     if (nc instanceof NameNameClass
         && ((NameNameClass)nc).getNamespaceUri().equals(""))
@@ -126,69 +124,63 @@ class Analyzer extends AbstractVisitor {
     return visitNameClassed(p);
   }
 
-  public VoidValue visitChoice(ChoiceNameClass nc) {
+  public Object visitChoice(ChoiceNameClass nc) {
     visitAnnotated(nc);
-    List<NameClass> list = nc.getChildren();
+    List list = nc.getChildren();
     for (int i = 0, len = list.size(); i < len; i++)
-      (list.get(i)).accept(this);
-    return VoidValue.VOID;
+      ((NameClass)list.get(i)).accept(this);
+    return null;
   }
 
-  public VoidValue visitValue(ValuePattern p) {
+  public Object visitValue(ValuePattern p) {
     visitAnnotated(p);
     if (!p.getType().equals("token") || !p.getDatatypeLibrary().equals(""))
       noteDatatypeLibrary(p.getDatatypeLibrary());
-    for (Map.Entry<String, String> entry : p.getPrefixMap().entrySet()) {
-      noteNs(entry.getKey(), entry.getValue());
+    for (Iterator iter = p.getPrefixMap().entrySet().iterator(); iter.hasNext();) {
+      Map.Entry entry = (Map.Entry)iter.next();
+      noteNs((String)entry.getKey(), (String)entry.getValue());
     }
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitData(DataPattern p) {
+  public Object visitData(DataPattern p) {
     visitAnnotated(p);
     noteDatatypeLibrary(p.getDatatypeLibrary());
     Pattern except = p.getExcept();
     if (except != null)
       except.accept(this);
-    for (Param param : p.getParams())
-      visitAnnotated(param);
-    return VoidValue.VOID;
+    for (Iterator iter = p.getParams().iterator(); iter.hasNext();)
+      visitAnnotated((Param)iter.next());      
+    return null;
   }
 
-  public VoidValue visitExternalRef(ExternalRefPattern p) {
-    visitAnnotated(p);
-    noteInheritNs(p.getNs());
-    return VoidValue.VOID;
-  }
-
-  public VoidValue visitName(NameNameClass nc) {
+  public Object visitName(NameNameClass nc) {
     visitAnnotated(nc);
     noteNs(nc.getPrefix(), nc.getNamespaceUri());
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitAnyName(AnyNameNameClass nc) {
+  public Object visitAnyName(AnyNameNameClass nc) {
     visitAnnotated(nc);
     NameClass except = nc.getExcept();
     if (except != null)
       except.accept(this);
-    return VoidValue.VOID;
+    return null;
   }
 
-  public VoidValue visitNsName(NsNameNameClass nc) {
+  public Object visitNsName(NsNameNameClass nc) {
     visitAnnotated(nc);
     noteInheritNs(nc.getNs());
     NameClass except = nc.getExcept();
     if (except != null)
       except.accept(this);
-    return VoidValue.VOID;
+    return null;
   }
 
   private String datatypeLibrary = null;
-  private final Map<String, String> prefixMap = new HashMap<String, String>();
+  private final Map prefixMap = new HashMap();
   private boolean haveInherit = false;
   private Context lastContext = null;
-  private String noPrefixNs = null;
 
   private void noteDatatypeLibrary(String uri) {
     if (datatypeLibrary == null || datatypeLibrary.length() == 0)
@@ -198,8 +190,6 @@ class Analyzer extends AbstractVisitor {
   private void noteInheritNs(String ns) {
     if (ns == NameClass.INHERIT_NS)
       haveInherit = true;
-    else
-      noPrefixNs = ns;
   }
 
   private void noteNs(String prefix, String ns) {
@@ -218,17 +208,15 @@ class Analyzer extends AbstractVisitor {
     if (context == null || context == lastContext)
       return;
     lastContext = context;
-    for (Enumeration e = context.prefixes(); e.hasMoreElements();) {
-      String prefix = (String)e.nextElement();
+    for (Enumeration enum = context.prefixes(); enum.hasMoreElements();) {
+      String prefix = (String)enum.nextElement();
       noteNs(prefix, context.resolveNamespacePrefix(prefix));
     }
   }
 
-  Map<String, String> getPrefixMap() {
+  Map getPrefixMap() {
     if (haveInherit)
       prefixMap.remove("");
-    else if (noPrefixNs != null && !prefixMap.containsKey(""))
-      prefixMap.put("", noPrefixNs);
     prefixMap.put("xml", WellKnownNamespaces.XML);
     return prefixMap;
   }

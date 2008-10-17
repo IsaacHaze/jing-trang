@@ -1,18 +1,17 @@
 package com.thaiopensource.relaxng.jarv;
 
+import com.thaiopensource.validate.IncorrectSchemaException;
 import com.thaiopensource.xml.sax.XMLReaderCreator;
 import com.thaiopensource.relaxng.impl.SchemaBuilderImpl;
 import com.thaiopensource.relaxng.impl.SchemaPatternBuilder;
 import com.thaiopensource.relaxng.parse.Parseable;
-import com.thaiopensource.relaxng.parse.IllegalSchemaException;
 import com.thaiopensource.relaxng.parse.sax.SAXParseable;
 import com.thaiopensource.xml.sax.DraconianErrorHandler;
 import com.thaiopensource.xml.sax.Jaxp11XMLReaderCreator;
-import com.thaiopensource.datatype.DatatypeLibraryLoader;
 import org.iso_relax.verifier.Schema;
 import org.iso_relax.verifier.VerifierFactory;
 import org.relaxng.datatype.DatatypeLibraryFactory;
-
+import org.relaxng.datatype.helpers.DatatypeLibraryLoader;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -32,7 +31,7 @@ public class VerifierFactoryImpl extends VerifierFactory {
     try {
       return new SchemaImpl(SchemaBuilderImpl.parse(parseable, eh, dlf, spb, false), spb);
     }
-    catch (IllegalSchemaException e) {
+    catch (IncorrectSchemaException e) {
       throw new SAXException("unreported schema error");
     }
   }

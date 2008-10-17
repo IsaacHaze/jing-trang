@@ -33,7 +33,6 @@ class VerifierHandlerImpl extends PatternValidator implements VerifierHandler {
 
   public void reset() {
     super.reset();
-    if (ceh != null)
-      ceh.reset();
+    ceh.reset();
   }
 }

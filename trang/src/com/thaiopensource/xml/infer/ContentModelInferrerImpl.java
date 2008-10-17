@@ -1,9 +1,10 @@
 package com.thaiopensource.xml.infer;
 
-import com.thaiopensource.xml.util.Name;
+import com.thaiopensource.relaxng.output.common.Name;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
@@ -15,14 +16,14 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
   /**
    * Maps names to nodes.
    */
-  private final Map<Name, SingleNode> nameMap = new HashMap<Name, SingleNode>();
+  private final Map nameMap = new HashMap();
 
   private SingleNode prevNode;
   private final SingleNode startNode;
   private final SingleNode endNode;
 
   private static class SingleNode {
-    final Set<SingleNode> followingNodes = new HashSet<SingleNode>();
+    final Set followingNodes = new HashSet();
     final Name name;
     final int index;
     boolean repeated = false;
@@ -37,7 +38,7 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
     final int index;
     Particle particle;
     int refCount = 0;
-    Set<ParticleNode> followingNodes = new HashSet<ParticleNode>();
+    Set followingNodes = new HashSet();
 
     ParticleNode(int index) {
       this.index = index;
@@ -57,7 +58,7 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
     private final int[] visited;
     private final SingleNode[] root;
     private int visitIndex = 0;
-    private final Stack<SingleNode> stack = new Stack<SingleNode>();
+    private final Stack stack = new Stack();
     private final ParticleNode[] particleNodes;
     private final SingleNode[] singleNodes;
     private int nParticles = 0;
@@ -72,8 +73,8 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
     ParticleNode makeDag(SingleNode start) {
       visit(start);
       for (int i = 0; i < singleNodes.length; i++)
-        for (SingleNode node : singleNodes[i].followingNodes)
-          particleNodes[i].addFollowing(particleNodes[node.index]);
+        for (Iterator iter = singleNodes[i].followingNodes.iterator(); iter.hasNext();)
+          particleNodes[i].addFollowing(particleNodes[((SingleNode)iter.next()).index]);
       return particleNodes[start.index];
     }
 
@@ -85,20 +86,21 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
       visited[v.index] = ++visitIndex;
       singleNodes[v.index] = v;
       stack.push(v);
-      for (SingleNode w : v.followingNodes) {
+      for (Iterator iter = v.followingNodes.iterator(); iter.hasNext();) {
+        SingleNode w = (SingleNode)iter.next();
         if (visited[w.index] == 0)
           visit(w);
         if (particleNodes[w.index] == null)
           root[v.index] = firstVisited(root[v.index], root[w.index]);
       }
       if (root[v.index] == v) {
-        SingleNode w = stack.pop();
+        SingleNode w = (SingleNode)stack.pop();
         ParticleNode pn = new ParticleNode(nParticles++);
         pn.particle = makeParticle(w.name);
         particleNodes[w.index] = pn;
         if (w != v) {
           do {
-            w = stack.pop();
+            w = (SingleNode)stack.pop();
             particleNodes[w.index] = pn;
             pn.particle = new ChoiceParticle(makeParticle(w.name), pn.particle);
           } while (w != v);
@@ -149,7 +151,8 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
 
     void visit(ParticleNode node) {
       int maxRank = 0;
-      for (ParticleNode follow : node.followingNodes) {
+      for (Iterator iter = node.followingNodes.iterator(); iter.hasNext();) {
+        ParticleNode follow = (ParticleNode)iter.next();
         if (rank[follow.index] == 0)
           visit(follow);
         maxRank = Math.max(maxRank, rank[follow.index]);
@@ -189,15 +192,15 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
       done[node.index] = true;
       if (node.particle != null) {
         while (node.followingNodes.size() == 1) {
-          ParticleNode follower = node.followingNodes.iterator().next();
+          ParticleNode follower = (ParticleNode)node.followingNodes.iterator().next();
           if (follower.refCount != 1 || follower.particle == null)
             break;
           node.particle = new SequenceParticle(node.particle, follower.particle);
           node.followingNodes = follower.followingNodes;
         }
       }
-      for (ParticleNode follower : node.followingNodes)
-        merge(follower);
+      for (Iterator iter = node.followingNodes.iterator(); iter.hasNext();)
+        merge((ParticleNode)iter.next());
     }
 
   }
@@ -224,7 +227,7 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
   }
 
   private SingleNode lookup(Name name) {
-    SingleNode node = nameMap.get(name);
+    SingleNode node = (SingleNode)nameMap.get(name);
     if (node == null) {
       node = new SingleNode(name, nameMap.size());
       nameMap.put(name, node);
@@ -247,8 +250,8 @@ class ContentModelInferrerImpl extends ContentModelInferrer {
     return new ElementParticle(name);
   }
 
-  public Set<Name> getElementNames() {
-    Set<Name> elementNames = new HashSet<Name>();
+  public Set getElementNames() {
+    Set elementNames = new HashSet();
     elementNames.addAll(nameMap.keySet());
     elementNames.remove(START);
     elementNames.remove(END);

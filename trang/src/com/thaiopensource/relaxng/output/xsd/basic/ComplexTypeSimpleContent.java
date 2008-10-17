@@ -14,7 +14,7 @@ public class ComplexTypeSimpleContent extends ComplexTypeAllowedContent {
     return simpleType;
   }
 
-  public <T> T accept(ComplexTypeVisitor<T> visitor) {
+  public Object accept(ComplexTypeVisitor visitor) {
     return visitor.visitSimpleContent(this);
   }
 
